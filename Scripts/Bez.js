@@ -1,5 +1,3 @@
-//@include './Dasher.js'
-
 /*
 
     Bez
@@ -391,7 +389,6 @@ Bez.prototype.redraw = function (select) {
             points.pop();
         }
 
-        // $.writeln('points.length = '+points.length);
         // remove excess path points
         while (pathPoints.length > points.length)
             pathPoints[pathPoints.length - 1].remove();
@@ -423,8 +420,6 @@ Bez.prototype.addPathPointAtExtrema = function (selectedSegmentsOnly) {
     */
 
     for (var k = 0; k < this.pathItems.length; k++) {
-        $.writeln('this.points.length = ' + this.points.length);
-        $.writeln('k = ' + k);
         var points = this.points[k],
             closed = this.closed[k],
             newPoints = [];
@@ -670,6 +665,9 @@ Bez.prototype.convertToDashes = function (options) {
     */
 
     if (this.pathItem == undefined) return;
+    if (Dasher == undefined)
+        throw 'Missing dependency: Dasher.js.';
+
     options = options || {};
 
     // get the pattern from the stroke dashes
@@ -715,7 +713,6 @@ Bez.prototype.convertToDashes = function (options) {
     // gather the points into sections
     var sections = this.getSections();
     if (sections.length == 0) throw 'Error: no sections found.';
-    $.writeln('sections.length = ' + sections.length);
 
     // get item's document
     var doc = getParentDocument(this.pathItem);
