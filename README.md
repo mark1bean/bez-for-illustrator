@@ -8,13 +8,13 @@ Bez.js is a library of path-related functions for Adobe Illustrator. It doesn't 
 
 ## Installation
 
-Download the [latest release](https://github.com/mark1bean/dasher-for-illustrator/releases/latest/download/add-path-point-at-extrema.zip). From Illustrator, run the script file `Add Path Point At Extrema.js`. Make sure `Bez.js` is in the same folder so it can find it.
+Download the [latest release](https://github.com/mark1bean/dasher-for-illustrator/releases/latest/download/add-path-point-at-extrema.zip). Store the scripts where you normally store your Illustrator script. Make sure `Bez.js` is in the same folder as `Add Path Point At Extrema.js` so it can find it.
 
 <br>
 
 ## Quick Start
 
-To use it straight away, just make a selection in Illustrator and run `Add Path Point At Extrema.js` script.
+Once installed, just make a selection in Illustrator and run `Add Path Point At Extrema.js` script.
 
 >You can select just the path segments that you wish to add the anchor points to, or you can select the whole path, or paths.
 
