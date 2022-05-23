@@ -32,8 +32,10 @@
 
 
 /**
- * Bez - path manipulation helper tool
- * @param {params} params
+ * Bez
+ *
+ * A path manipulation helper object.
+ *
  * @param {Object} params
  * @param {[PathItem]} params.pathItem - a PathItem
  * @param {[Array[BezPoints]]} params.points - Array of BezPoints
@@ -102,8 +104,10 @@ Bez = function (params) {
 
 /**
  * Bez.drawDashes
+ *
  * make pathItems based on points supplied
  * added to group supplied
+ *
  * @param {Array[BezPoints]} points - BezPoints must be marked with `endOfDash` property
  * @param {Document} doc - the document
  * @param {GroupItem} group - the dashes will be added to this group
@@ -200,7 +204,10 @@ Bez.drawDashes = function (points, doc, group, closed, alignDashes, strokeCap, s
 
 
 /**
- * Bez.pathItemsFromInterpolation - create pathItems by interpolation
+ * Bez.pathItemsFromInterpolation
+ *
+ * Create pathItems by interpolating between 2 pathItems
+ *
  * @param {PathItem} pathItem1
  * @param {PathItem} pathItem2
  * @param {[Number]} numberOfPaths - number of interpolated paths to create
@@ -269,6 +276,9 @@ Bez.pathItemsFromInterpolation = function (pathItem1, pathItem2, numberOfPaths, 
 
 /**
  * Bez.getExtremaOfCurve
+ *
+ * Calculate t values of a segment's extrema
+ *
  * @param {Array[4]} q - segment description - see Bez.getQ()
  * @param {Array} - the t values found
  */
@@ -321,6 +331,7 @@ Bez.getExtremaOfCurve = function (q) {
 
 /**
  * Bez.getK
+ *
  * @param {Array[4]} q - segment description - see Bez.getQ()
  * @param {Array} - the k values
  */
@@ -349,8 +360,10 @@ Bez.getK = function (q) {
 
 
 /**
- * Bez.getLength:
+ * Bez.getLength
+ *
  * return the length of bezier curve segment
+ *
  * @param {Array[5]} k - eg. output of Bez.getK()
  * @param {Number} t - number in range 0..1
  * @returns {Number} - length in points
@@ -372,8 +385,10 @@ Bez.getLength = function (k, t) {
 
 /**
  * Bez.getQ
- * numerical description of the path
- * segment between two points
+ *
+ * get description segment
+ * between two points
+ *
  * @param {(BezPoint|PathPoint)} p1
  * @param {(BezPoint|PathPoint)} p2
  * @returns {Array[4]}
@@ -387,7 +402,10 @@ Bez.getQ = function (p1, p2) {
 
 /**
  * Bez.pointOnBezier
- * coordinates of a point on segment q at t
+ *
+ * Returns [x,y] coordinates of
+ * a point on segment q at t
+ *
  * @param {Array[4]} q - segment description - see Bez.getQ()
  * @param {Number} t - Number in range 0..1
  * @returns {Array[2]} - Array [x,y]
@@ -406,7 +424,9 @@ Bez.pointOnBezier = function (q, t) {
 
 /**
  * Bez.segmentLength
- * calculate length of path segment
+ *
+ * Calculate length of path segment.
+ *
  * @param {(BezPoint|PathPoint)} p1
  * @param {(BezPoint|PathPoint)} p2
  * @returns {Number} - segment length in points
@@ -419,8 +439,13 @@ Bez.segmentLength = function (p1, p2) {
 
 /**
  * Bez.splitSegment
- * calculate BezPoints after adding a
- * point to the segment at each tValue
+ *
+ * Calculate BezPoints after adding a
+ * point to the segment at each tValue.
+ *
+ * Note: this doesn't do anything to
+ * the associated path item
+ *
  * @param {(BezPoint|PathPoint)} p1 - point at start of segment
  * @param {(BezPoint|PathPoint)} p2 - point at end of segment
  * @param {Array} tValues - array of numbers in range 0..1
@@ -503,15 +528,15 @@ Bez.splitSegment = function (p1, p2, tValues) {
 
 /**
  * Bez.tForLength
- * gets tValue (0..1) at len along segment
+ *
+ * Gets tValue (0..1) at len along segment.
+ *
  * @param {Array[4]} q - segment description - see Bez.getQ()
  * @param {Number} len - length in points
  * @param {Array[5]} k - see Bez.getK()
  * @returns {Number} - number in range 0..1
  */
 Bez.tForLength = function (q, len, k) {
-    // return the bezier curve parameter "t"
-    // at point 'len' pts along path
     // when "len" is 0, return the length of whole this segment.
     k = k || Bez.getK(q);
     var fullLen = Bez.getLength(k, 1);
@@ -546,8 +571,10 @@ Bez.tForLength = function (q, len, k) {
 
 /**
  * Bez.prototype.redraw
- * updates this.pathItem using this.points
- * @param {BOOLEAN} select - select the pathItem
+ *
+ * Updates this.pathItem using this.points.
+ *
+ * @param {BOOLEAN} select - select the pathItem afterwards
  */
 Bez.prototype.redraw = function (select) {
     /* updates pathItem with this.points */
@@ -589,7 +616,9 @@ Bez.prototype.redraw = function (select) {
 
 /**
  * Bez.prototype.addPathPointAtExtrema
- * adds points at extrema
+ *
+ * Adds new points at extrema of paths.
+ *
  * @param {BOOLEAN} selectedSegmentsOnly - apply to just the selected segments
  */
 Bez.prototype.addPathPointAtExtrema = function (selectedSegmentsOnly) {
@@ -676,7 +705,8 @@ Bez.prototype.addPathPointAtExtrema = function (selectedSegmentsOnly) {
 
 /**
  * Bez.prototype.select
- * Select the bez pathItem
+ *
+ * Selects this.pathItem.
  */
 Bez.prototype.select = function () {
     this.pathItem.selected = true;
@@ -686,17 +716,21 @@ Bez.prototype.select = function () {
 
 /**
  * Bez.prototype.draw
- * Create a path item of the bez
+ *
+ * Create a new path item of the bez,
+ * but will not replace the bez's pathItem.
+ * (see Bez.prototype.redraw)
+ *
+ * To Do: update this function to include
+ * various appearance properties
+ *
  * @param {Color} strokeColor
+ * @returns {PathItem} the path item created
  */
 Bez.prototype.draw = function (strokeColor) {
     // create path item
     var doc = app.activeDocument,
         item = doc.activeLayer.pathItems.add();
-    // item.filled = false;
-    // item.stroke = true;
-    // item.strokeColor = strokeColor;
-    // item.strokeDashes = [];
 
     if (this.closed[0] === true) {
         // remove the last point, so it doesn't draw double
