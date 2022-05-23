@@ -1,31 +1,60 @@
-# Bez.js for illustrator
-Bez.js is a library of path-related functions for Adobe Illustrator. It doesn't do anything by itself. Currently I use it for my dasher script and also the example script `Add Path Point At Extrema.js`.
+# Bez.js for Illustrator
 
-![Add Path Point At Extrema.js demo animation](add-path-point-at-extrema-anim.gif)
+Bez.js is a library of path-related functions for Adobe Illustrator.
 
-<br>
+So far I have used it in my [Dasher project](https://github.com/mark1bean/dasher-for-illustrator) script as well as example scripts *Add Path Point At Extrema.js* and *Interpolate Between Paths.js*.
 
+![Add Path Point At Extrema.js demo animation](images/add-extrema-anim.gif)
+
+![Interpolate Between Paths.js demo animation](images/interpolate-paths-anim.gif)
+
+![Dasher.js demo animation](images/dasher-anim.gif)
+
+$~$
+***
 
 ## Installation
 
-Download the [latest release](https://github.com/mark1bean/dasher-for-illustrator/releases/latest/download/add-path-point-at-extrema.zip). Store the scripts where you normally store your Illustrator script. Make sure `Bez.js` is in the same folder as `Add Path Point At Extrema.js` so it can find it.
+Download the [latest release](https://github.com/mark1bean/bez-for-illustrator/releases/latest/download/bez-for-illustrator.zip). Store the scripts where you normally store your Illustrator script. Make sure `Bez.js` is in the same folder as `Add Path Point At Extrema.js` so it can find it.
 
-<br>
+$~$
+***
 
-## Quick Start
+## Example Usage
 
-Once installed, just make a selection in Illustrator and run `Add Path Point At Extrema.js` script.
+### Add Path Point At Extrema
 
->You can select just the path segments that you wish to add the anchor points to, or you can select the whole path, or paths.
+Make a selection in Illustrator and run `Add Path Point At Extrema.js` script. You can select just the path segments that you wish to add the anchor points to, or you can select the whole path, or paths.
 
-Remember: it won't work unless `Bez.js` are in the same folder with the script.
+>Remember: it won't work unless `Bez.js` are in the same folder with the script, or if you change the path at the start of the script.
 
-<br>
+### Interpolate Between Paths
+
+Select two compatible path items in Illustrator and run `Interpolate Between Paths.js` script. Edit the script to use in one of two ways:
+
+Example 1: make 6 interpolated paths
+
+```javascript
+var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 6);
+```
+
+Example 2: make a single new path at 20% position (ie. t == 0.2)
+
+```javascript
+var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], undefined, 0.2);
+```
+
+>Note: path items have the same number of path points.
+
+$~$
+***
 
 ## Why this project?
-Some on the adobe community forum asked for a script that added an anchor point at the top extrema of a path. I had recently created Bez.js for [another project](https://github.com/mark1bean/dasher-for-illustrator). It already had some of the logic required for this and so I decided to extend it.
 
-<br>
+Someone the adobe community forum asked for a script that added an anchor point at the top extrema of a path. I had recently created Bez.js for [another project](https://github.com/mark1bean/dasher-for-illustrator). It already had some of the logic required for this and so I decided to extend it.
+
+$~$
+***
 
 ## Please help with testing
 
@@ -33,13 +62,15 @@ As of 2022-03-14, this script is hardly tested at all, and only on my machine. A
 
 Please post any issues you come across.
 
-<br>
+$~$
+***
 
 ## System requirements
 
 As of 2022-01-24, tested only on AI version 26.1 (MacOS 12.1).
 
-<br>
+$~$
+***
 
 ## Acknowledgements
 
