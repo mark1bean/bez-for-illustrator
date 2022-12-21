@@ -98,7 +98,7 @@ Bez = function (params) {
                 this.points[i][j] = BezPoint.convertPoint(this.pathItems[i].pathPoints[j]);
         }
     }
-}
+};
 
 
 
@@ -199,7 +199,7 @@ Bez.drawDashes = function (points, doc, group, closed, alignDashes, strokeCap, s
         item.closed = false;
     }
 
-}
+};
 
 
 
@@ -270,7 +270,70 @@ Bez.pathItemsFromInterpolation = function (pathItem1, pathItem2, numberOfPaths, 
         return newBez.draw();
     }
 
-}
+};
+
+
+
+
+/**
+ * Convert the bez paths to straight sided polygons.
+ * @author m1b
+ * @version 2022-12-21
+ * @param {Number} d - the average length of a flat segment when approximating a curve segment. In other words, create an anchor point at approximately every multiple of `d` points.
+ */
+Bez.prototype.convertToPolygon = function convertToPolygon(d) {
+
+    var self = this,
+        isSelected = this.pathItem.selected == true;
+
+    for (var i = 0; i < self.points.length; i++) {
+
+        var pointStack = self.points[i].slice(),
+            closed = self.closed[i],
+            newPoints = [];
+
+        if (closed)
+            pointStack.push(pointStack[0]);
+
+        if (pointStack.length < 2)
+            continue;
+
+        // the segment's two points
+        var p1, p2;
+
+        pointLoop:
+        while (pointStack.length > 1) {
+
+            // segment points p1 and p2
+            p1 = pointStack.shift();
+            p2 = pointStack[0];
+
+            var q = Bez.getQ(p1, p2),
+                k = Bez.getK(q),
+                segmentLength = Bez.getLength(k, 1),
+                n = Math.floor(segmentLength / d),
+                dL = segmentLength / n,
+                adv = dL;
+
+            newPoints.push(new BezPoint(p1.anchor));
+
+            while (round(segmentLength - adv, 4) >= round(dL, 4)) {
+                newPoints.push(new BezPoint(Bez.pointOnBezier(q, Bez.tForLength(q, adv, k))));
+                adv = adv + dL;
+            }
+
+        }
+
+        newPoints.push(new BezPoint(p2.anchor));
+
+        self.points[i] = newPoints;
+
+    }
+
+    self.redraw(isSelected);
+
+};
+
 
 
 
@@ -355,7 +418,7 @@ Bez.getK = function (q) {
             m[2] * m[2] + n[2] * n[2]
         ];
     return k;
-}
+};
 
 
 
@@ -379,7 +442,7 @@ Bez.getLength = function (k, t) {
         total += 2 * fc(i, k) + fc(i + h, k);
     }
     return total * hh;
-}
+};
 
 
 
@@ -396,7 +459,7 @@ Bez.getLength = function (k, t) {
 Bez.getQ = function (p1, p2) {
     // accepts 2 BezPoints
     return [p1.anchor, p1.rightDirection, p2.leftDirection, p2.anchor];
-}
+};
 
 
 
@@ -418,7 +481,7 @@ Bez.pointOnBezier = function (q, t) {
         u * u * u * q[0][0] + 3 * u * t * (u * q[1][0] + t * q[2][0]) + t * t * t * q[3][0],
         u * u * u * q[0][1] + 3 * u * t * (u * q[1][1] + t * q[2][1]) + t * t * t * q[3][1]
     ];
-}
+};
 
 
 
@@ -433,7 +496,7 @@ Bez.pointOnBezier = function (q, t) {
  */
 Bez.segmentLength = function (p1, p2) {
     return Bez.getLength(Bez.getK(Bez.getQ(p1, p2)), 1)
-}
+};
 
 
 
@@ -565,7 +628,7 @@ Bez.tForLength = function (q, len, k) {
     }
 
     return t;
-}
+};
 
 
 
@@ -577,9 +640,9 @@ Bez.tForLength = function (q, len, k) {
  * @param {BOOLEAN} select - select the pathItem afterwards
  */
 Bez.prototype.redraw = function (select) {
-    /* updates pathItem with this.points */
 
     for (var k = 0; k < this.pathItems.length; k++) {
+
         var pathPoints = this.pathPoints[k],
             points = this.points[k],
             closed = this.closed[k];
@@ -608,9 +671,13 @@ Bez.prototype.redraw = function (select) {
         }
     }
 
-    if (select)
-        this.pathItem.selected = true;
-}
+    if (select) {
+        this.pathItem.selected = true
+        for (var i = 0; i < this.pathItems.length; i++)
+            this.pathItems[i].selected = true;
+    }
+
+};
 
 
 
@@ -700,7 +767,7 @@ Bez.prototype.addPathPointAtExtrema = function (selectedSegmentsOnly) {
 
     // redraw the pathItem
     this.redraw(true);
-}
+};
 
 
 /**
@@ -710,7 +777,7 @@ Bez.prototype.addPathPointAtExtrema = function (selectedSegmentsOnly) {
  */
 Bez.prototype.select = function () {
     this.pathItem.selected = true;
-}
+};
 
 
 
@@ -811,7 +878,7 @@ Bez.prototype.getSections = function () {
     }
 
     return sections;
-}
+};
 
 
 
@@ -825,7 +892,7 @@ Bez.prototype.toString = function () {
     }
     list.push(']')
     return list.join('\n');
-}
+};
 
 
 
@@ -868,7 +935,7 @@ Bez.prototype.markSectionDivisions = function () {
         // if angle is too low, break section here
         p1.endOfSection = Math.abs(p1.angle) < 135;
     }
-}
+};
 
 
 
@@ -1011,7 +1078,7 @@ BezSection = function () {
     this.points = [];
     this.length = 0;
     this.dashStack = [];
-}
+};
 
 
 
@@ -1121,7 +1188,7 @@ BezSection.prototype.getDashPoints = function (dashStack, alignDashes) {
     if (alignDashes) segmentAdvance += lastDashLength;
 
     return dashPoints;
-}
+};
 
 
 
@@ -1136,7 +1203,7 @@ BezSection.prototype.toString = function () {
         dashPointsPrintout = dashPointsPrintout.join('\n')
     }
     return this.points.join('\n') + (dashPointsPrintout.length > 0 ? ('\n' + dashPointsPrintout) : '');
-}
+};
 
 
 
@@ -1146,19 +1213,19 @@ BezSection.prototype.toString = function () {
 /**
  * BezPoint
  * A point object
- * @param {Array[2]} anchor - anchor point
- * @param {Array[2]} leftDirection - left control point
- * @param {Array[2]} rightDirection - right control point
- * @param {PointType} pointType - smooth or corner
- * @param {[PathPoint]} pathPoint - a PathPoint
+ * @param {Array} anchor - anchor point [x, y]
+ * @param {Array} leftDirection - left control point [x, y] (default: same as anchor).
+ * @param {Array} rightDirection - right control point [x, y] (default: same as anchor).
+ * @param {PointType} pointType - smooth or corner (default: corner).
+ * @param {PathPoint} pathPoint - a PathPoint
  */
 BezPoint = function (anchor, leftDirection, rightDirection, pointType, pathPoint) {
     this.anchor = anchor;
     this.leftDirection = leftDirection || anchor;
     this.rightDirection = rightDirection || anchor;
-    this.pointType = pointType;
+    this.pointType = pointType || PointType.CORNER;
     this.pathPoint = pathPoint;
-}
+};
 
 
 
@@ -1178,7 +1245,7 @@ BezPoint.convertPoint = function (p) {
             throw 'Cannot make BezPoint from array with ' + p.length + ' elements.';
         }
     }
-}
+};
 
 
 
@@ -1206,7 +1273,7 @@ BezPoint.bezPointFromInterpolation = function (p1, p2, t) {
             (p2[1] - p1[1]) * t + p1[1]
         ];
     }
-}
+};
 
 
 
@@ -1231,7 +1298,7 @@ BezPoint.prototype.toString = function () {
         + (this.endOfSection ? ' endOfSection' : '')
         + ']';
     return list;
-}
+};
 
 
 
@@ -1244,7 +1311,7 @@ BezPoint.prototype.hasLeftDirection = function () {
         this.anchor[0] != this.leftDirection[0]
         || this.anchor[1] != this.leftDirection[1]
     )
-}
+};
 
 
 
@@ -1257,7 +1324,7 @@ BezPoint.prototype.hasRightDirection = function () {
         this.anchor[0] != this.rightDirection[0]
         || this.anchor[1] != this.rightDirection[1]
     )
-}
+};
 
 
 
@@ -1278,7 +1345,7 @@ function addPoint(item, p) {
     newPoint.rightDirection = p.rightDirection;
     newPoint.pointType = p.pointType;
     return newPoint;
-}
+};
 
 
 
@@ -1394,7 +1461,7 @@ function strokeDashesAreAligned(item, keepSelection) {
     }
 
     return dashesAreAligned;
-}
+};
 
 
 
@@ -1409,7 +1476,7 @@ function strokeDashesAreAligned(item, keepSelection) {
 function toggle(n, m) {
     m = m || 2;
     return (n + 1) % m;
-}
+};
 
 
 
@@ -1428,7 +1495,7 @@ function round(nums, places) {
         result[i] = Math.round(nums[i] * places) / places;
     }
     return nums.length == 1 ? result[0] : result;
-}
+};
 
 
 
@@ -1446,7 +1513,27 @@ function getAngleABC(a, b, c) {
     var cross = (ab[0] * cb[1] - ab[1] * cb[0]);
     var alpha = Math.atan2(cross, dot);
     return alpha * 180 / Math.PI;
-}
+};
+
+
+
+/**
+ * Returns distance between two points.
+ * @author m1b
+ * @version 2022-07-25
+ * @param {Array} p1 - a point array [x, y].
+ * @param {Array} p2 - a point array [x, y].
+ * @returns {Number} - distance in points.
+ */
+function distanceBetweenPoints (p1, p2) {
+
+    var a = p1[0] - p2[0];
+    var b = p1[1] - p2[1];
+    return Math.sqrt(a * a + b * b);
+
+};
+
+
 
 
 
@@ -1458,7 +1545,7 @@ function getAngleABC(a, b, c) {
  */
 function pointsAreEqual(p1, p2) {
     return p1[0] == p2[0] && p1[1] == p2[1];
-}
+};
 
 
 
@@ -1471,7 +1558,7 @@ function getParentDocument(obj) {
     while (obj.hasOwnProperty('parent') && obj.constructor.name != 'Document')
         obj = obj.parent;
     return obj;
-}
+};
 
 
 
@@ -1506,7 +1593,7 @@ function itemsInsideGroupItems(items, typenames, level) {
     } catch (err) {
         alert('itemsInsideGroupItems: ' + err)
     }
-}
+};
 
 
 
@@ -1530,7 +1617,7 @@ function itemIsType(item, typenames) {
         }
     }
     return matched;
-}
+};
 
 
 var inch = 72;
