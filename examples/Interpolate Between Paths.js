@@ -19,13 +19,18 @@
     var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 6);
 
     // example 2: make a single new path interpolated at t == 20%
-    var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], undefined, 0.2);
+    var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], [0.2]);
+
+    // example 3: make 6 interpolated paths at specific interpolations
+    var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], [0.05, 0.15, 0.3, 0.7, 0.85, 0.95]);
 
 */
-//@include './Bez.js'
+//@include '../library/Bez.js'
+
 
 if (Bez == undefined)
-    throw 'Must have Bez.js in same folder as this script.';
+    throw Error('Cannot find the required script file "Bez.js".');
 
-var doc = app.activeDocument,
-    items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 5);
+var doc = app.activeDocument;
+
+var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 6);

@@ -19,7 +19,7 @@
     1. Bez.js      path-related logic
 
 */
-//@include './Bez.js'
+//@include '../library/Bez.js'
 
 if (Bez == undefined)
     throw 'Must have Bez.js in same folder as this script.';

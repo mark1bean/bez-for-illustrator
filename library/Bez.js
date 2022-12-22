@@ -103,23 +103,23 @@ Bez = function (params) {
 
 
 /**
- * Bez.drawDashes
- *
- * make pathItems based on points supplied
- * added to group supplied
- *
- * @param {Array[BezPoints]} points - BezPoints must be marked with `endOfDash` property
- * @param {Document} doc - the document
- * @param {GroupItem} group - the dashes will be added to this group
- * @param {BOOLEAN} closed - is the path closed
- * @param {BOOLEAN} alignDashes - dashes align to corners and path ends
- * @param {StrokeCap} strokeCap
- * @param {Color} strokeColor
- * @param {StrokeJoin} strokeJoin
- * @param {StrokeMiterLimit} strokeMiterLimit
- * @param {StrokeWidth} strokeWidth
+ * Make pathItems based on points supplied.
+ * @author m1b
+ * @version 2022-05-23
+ * Note: BezPoints must be marked with `endOfDash` property.
+ * @param {Array<BezPoint>} points - array of BezPoints.
+ * @param {Document} doc - an Illustrator Document.
+ * @param {GroupItem} group - the dashes will be added to this group.
+ * @param {Boolean} closed - whether the path is closed.
+ * @param {Boolean} alignDashes - dashes align to corners and path ends.
+ * @param {StrokeCap} strokeCap - the dashes strokeCap.
+ * @param {Color} strokeColor - the dashes strokeColor.
+ * @param {StrokeJoin} strokeJoin - the dashes strokeJoin.
+ * @param {StrokeMiterLimit} strokeMiterLimit - the dashes strokeMiterLimit.
+ * @param {StrokeWidth} strokeWidth - the dashes strokeMiterLimit.
  */
 Bez.drawDashes = function (points, doc, group, closed, alignDashes, strokeCap, strokeColor, strokeJoin, strokeMiterLimit, strokeWidth) {
+
     closed = closed || false;
     alignDashes = alignDashes || false;
     strokeCap = strokeCap || StrokeCap.BUTTENDCAP;
@@ -131,6 +131,7 @@ Bez.drawDashes = function (points, doc, group, closed, alignDashes, strokeCap, s
         dashItems = [];
 
     if (closed == true && alignDashes == true) {
+
         // if closed and fitted path, rotate the stack
         // so first dash will be part of last dash
         var counter = 0;
@@ -139,12 +140,14 @@ Bez.drawDashes = function (points, doc, group, closed, alignDashes, strokeCap, s
             pointStack.push(pointStack.shift());
             if (counter++ > pointStack.length) break;
         }
+
         counter = 0
         // rotate stack until first item isn't endOfDash
         while (pointStack[0].endOfDash == true) {
             pointStack.push(pointStack.shift());
             if (counter++ > pointStack.length) break;
         }
+
     }
 
     while (pointStack.length > 0) {
@@ -204,17 +207,15 @@ Bez.drawDashes = function (points, doc, group, closed, alignDashes, strokeCap, s
 
 
 /**
- * Bez.pathItemsFromInterpolation
- *
  * Create pathItems by interpolating between 2 pathItems
- *
- * @param {PathItem} pathItem1
- * @param {PathItem} pathItem2
- * @param {[Number]} numberOfPaths - number of interpolated paths to create
- * @param {[Number]} t - number in range 0..1 or array of such numbers
- * @returns {PathItem[]} - Array of one or more PathItems
+ * @author m1b
+ * @version 2022-12-22
+ * @param {PathItem} pathItem1 - an Illustrator path item.
+ * @param {PathItem} pathItem2 - an Illustrator path item with matching number of path points.
+ * @param {Number|Array<Number>} n - number of interpolated paths to create, or array of numbers in range 0..1.
+ * @returns {Array<PathItem>} - Array of one or more PathItems
  * */
-Bez.pathItemsFromInterpolation = function (pathItem1, pathItem2, numberOfPaths, t) {
+Bez.pathItemsFromInterpolation = function (pathItem1, pathItem2, n) {
 
     if (
         pathItem1 == undefined
@@ -224,6 +225,20 @@ Bez.pathItemsFromInterpolation = function (pathItem1, pathItem2, numberOfPaths, 
         return;
     }
 
+    var numberOfPaths,
+        tValues;
+
+    if (n.constructor.name == 'Number')
+        numberOfPaths = n;
+
+    else if (
+        n.constructor.name == 'Array'
+        && n.length > 0
+    ) {
+        tValues = n;
+        numberOfPaths = tValues.length;
+    }
+
     numberOfPaths = numberOfPaths || 1;
 
     // placement should be between path items in layer order
@@ -231,24 +246,24 @@ Bez.pathItemsFromInterpolation = function (pathItem1, pathItem2, numberOfPaths, 
         ? ElementPlacement.PLACEAFTER
         : ElementPlacement.PLACEBEFORE;
 
-    if (t == undefined) {
-        // make multiple interpolations
-        var inc = 1 / (numberOfPaths + 1),
-            items = [];
-
-        //make items
-        for (var i = 0; i < numberOfPaths; i++) {
-            t = inc * (i + 1);
-            items[i] = makePathItemInterpolated(pathItem1, pathItem2, t);
-            items[i].move(pathItem2, placement)
-        }
-        return items;
+    if (tValues == undefined) {
+        tValues = [];
+        var inc = 1 / (numberOfPaths + 1);
+        for (var i = 0; i < numberOfPaths; i++)
+            tValues.push(inc * (i + 1))
     }
 
-    else {
-        // make one interpolation at t
-        return [makePathItemInterpolated(pathItem1, pathItem2, t)];
+    // make multiple interpolations
+    items = [];
+
+    //make items
+    for (var i = 0; i < tValues.length; i++) {
+        items[i] = makePathItemInterpolated(pathItem1, pathItem2, tValues[i]);
+        items[i].move(pathItem2, placement)
     }
+
+    return items;
+
 
     function makePathItemInterpolated(pathItem1, pathItem2, t) {
 
@@ -1525,7 +1540,7 @@ function getAngleABC(a, b, c) {
  * @param {Array} p2 - a point array [x, y].
  * @returns {Number} - distance in points.
  */
-function distanceBetweenPoints (p1, p2) {
+function distanceBetweenPoints(p1, p2) {
 
     var a = p1[0] - p2[0];
     var b = p1[1] - p2[1];
