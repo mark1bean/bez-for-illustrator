@@ -2,7 +2,6 @@
 
 Lightweight scripts that demonstrate some of the functionality of Bez.js for Adobe Illustrator.
 
-
 ## Installation
 
 To get all the example scripts, just download the [latest release](https://github.com/mark1bean/bez-for-illustrator/releases/latest/download/bez-for-illustrator.zip) and you'll have everything you need. Feel free to move the library files wherever you like, but you'll need to adjust the `//@include` paths in the example scripts so that they link up as required.
@@ -10,81 +9,76 @@ To get all the example scripts, just download the [latest release](https://githu
 $~$
 ***
 
-
 ## Add Path Point At Extrema.js
 
-Select a PathItem in Illustrator and run script. You can select just the path segments that you wish to add the anchor points to, or you can select the whole path, or paths.
+Select a whole path or just part of a path and run script. Will add extra path points at each extreme of the curve.
 
-![Add Path Point At Extrema.js demo animation](images/add-extrema-anim.gif)
-
-
-## Convert Path To Dashes.js
-
-XXX
-
-![Dasher.js demo animation](images/dasher-anim.gif)
-
-
-## Convert Path To Polygon.js
-
-XXX
-
-![Dasher.js demo animation](images/dasher-anim.gif)
-
-
-## Find Visual Center.js
-
-Select a PathItem or CompoundPathItem in Illustrator and run script. You can select just the path segments that you wish to add the anchor points to, or you can select the whole path, or paths.
-
-![Add Path Point At Extrema.js demo animation](images/add-extrema-anim.gif)
-
-
-## Interpolate Between Paths.js
-
-Select two compatible path items in Illustrator and run script. See variations:
-
-#### Example 1: make 6, evenly-distributed, interpolated paths
-
-```javascript
-var doc = app.activeDocument;
-var items = doc.selection;
-var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], 6);
-```
-
-#### Example 2: make a single new path at 20% position (t == 0.2)
-
-```javascript
-var doc = app.activeDocument;
-var items = doc.selection;
-var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], [0.2]);
-```
-
-#### Example 3: make 6 new paths at specific interpolated positions
-
-```javascript
-var doc = app.activeDocument;
-var items = doc.selection;
-var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], [0.05, 0.15, 0.3, 0.7, 0.85, 0.95]);
-```
-
->Note: path items have the same number of path points.
-
-![Interpolate Between Paths.js demo animation](images/interpolate-paths-anim.gif)
-
+<img src="../images/add-point-at-extrema-anim.gif" alt="Add Path Point At Extrema.js demo animation" width="450"/>
 
 $~$
 ***
 
-## Why this project?
+## Convert Path To Dashes.js
 
-Someone the adobe community forum asked for a script that added an anchor point at the top extrema of a path. I had recently created Bez.js for [another project](https://github.com/mark1bean/dasher-for-illustrator). It already had some of the logic required for this and so I decided to extend it.
+Select a path item that has a dashed stroke and run script. Converts into actual dashes, each a separate path. The real deal.
+
+<img src="../images/convert-to-dashes-anim.gif" alt="Convert Path To Dashes.js demo animation" width="450"/>
+
+$~$
+***
+
+## Convert Path To Polygon.js
+
+Select a path item and run script. Converts into a polygon with straight-line segments. The average distance between points can be set via the script parameter (called 'flatness'). A flatness of 10 means each added path point will be approximately 10 pts from the previous.
+
+<img src="../images/convert-to-polygon-anim.gif" alt="Convert Path To Polygon.js demo animation" width="450"/>
+
+$~$
+***
+
+## Find Visual Center.js
+
+Select a path item and run script. It will draw a circle over the item, showing the best calculated position and size of the visual center. It will also put draw a random label and scale it to fit to the visual center.
+
+<img src="../images/find-visual-center-anim.gif" alt="Find Visual Center.js demo animation" width="450"/>
+
+$~$
+***
+
+## Interpolate Between Paths.js
+
+Select two compatible (same number of points) path items in Illustrator and run script. The number of steps, and the distribution can be specified.
+
+<img src="../images/interpolate-anim.gif" alt="Interpolate Between Paths.js demo animation" width="450"/>
+
+### Example 1: make 6 new paths, evenly-distributed
+
+```javascript
+var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], 6);
+```
+
+### Example 2: make a single new path at 20% position (t == 0.2)
+
+```javascript
+var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], [0.2]);
+```
+
+### Example 3: make 6 new paths given explicit distribution
+
+```javascript
+var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], [0.05, 0.15, 0.3, 0.7, 0.85, 0.95]);
+```
+
+### Example 4: make 6 new paths distributed by an ease function
+
+```javascript
+var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 6, easeOutQuad);
+```
 
 $~$
 ***
 
 ## Please help with testing
-
-As of 2022-03-14, this script is hardly tested at all, and only on my machine. Adobe Illlustrator 2022 (v26), MacOS 12.2.1.
 
 Please post any issues you come across.
 
@@ -93,13 +87,22 @@ $~$
 
 ## System requirements
 
-As of 2022-01-24, tested only on AI version 26.1 (MacOS 12.1).
+As of 2022-12-23, tested only on AI version 26.1 (MacOS 12.1), but should work on AI for Windows any version of the last 10 years.
 
 $~$
 ***
 
 ## Acknowledgements
 
-Thanks so much to Hiroyuki Sato, for his bezier maths code from his excellent [Divide (length).js script](https://github.com/Shanfan/Illustrator-Scripts-Archive/blob/master/jsx/Divide%20(length).jsx).
+Thanks so much to Hiroyuki Sato, who got me started with his bezier math code from his excellent [Divide (length).js script](https://github.com/Shanfan/Illustrator-Scripts-Archive/blob/master/jsx/Divide%20(length).jsx).
 
-To calculate extrema, I use code from [Timo's answer on stackexchange](https://stackoverflow.com/questions/2587751/an-algorithm-to-find-bounding-box-of-closed-bezier-curves). Thanks Timo.
+To calculate extrema, I use code from [Timo's answer on stackoverflow](https://stackoverflow.com/questions/2587751/an-algorithm-to-find-bounding-box-of-closed-bezier-curves). Thanks Timo.
+
+To calculate visual center, I ported code from Volodymyr Agafonkin's amazing [PolyLabel](https://github.com/mapbox/polylabel). Thanks so much Volodymyr.
+
+$~$
+***
+
+## Support my scripting
+
+It takes a lot of time to put these tools together. If you would like to show your support for my work, please [donate $5](https://paypal.me/mark1bean/USD5) or [another amount](https://paypal.me/mark1bean).

@@ -16,6 +16,7 @@
 
 /**
  * Ported to ExtendScript by m1b.
+ * with very slight modifications.
  * @date 2022-12-21
  */
 
@@ -99,8 +100,7 @@ function polylabel(polygon, precision, debug) {
     }
 
     return {
-        x: bestCell.x,
-        y: bestCell.y,
+        center: [bestCell.x, bestCell.y],
         radius: bestCell.d
     };
 

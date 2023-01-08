@@ -1,20 +1,4 @@
-/*
-
-    Dasher
-    for Adobe Illustrator
-
-    A tool for generating dash|gap patterns that
-    attempts to match Illustrator's own algorithm
-
-    by m1b
-    https://github.com/mark1bean/dasher-for-illustrator
-
-*/
-
-
 /**
- * Dasher
- *
  * Tool for generating dash-gap patterns attempting
  * to match Illustrator's own algorithm
  *
@@ -24,36 +8,52 @@
  * @param {Array} pattern - an array [dash, gap, dash, gap, ...]
  */
 function Dasher(pattern) {
-    if (pattern.constructor.name != 'Array') return;
-    if (pattern.length == 1) pattern[1] = pattern[0];
 
-    // if odd number of dash lengths, double it
+    var self = this;
+
+    if (pattern.constructor.name != 'Array')
+        return;
+
+    if (pattern.length == 1)
+        // add a gap same as the dash
+        pattern[1] = pattern[0];
+
     if (pattern.length % 2 == 1)
+        // if odd number of dash lengths, double it
         pattern = pattern.concat(pattern);
 
-    this.pattern = pattern;
+    self.pattern = pattern;
 
     // total length of one repetition
     var sum = 0, i = pattern.length;
-    while (i--) sum += pattern[i];
-    this.sum = sum;
-}
+
+    while (i--)
+        sum += pattern[i];
+
+    self.sum = sum;
+
+};
 
 
 
 /**
- * Dasher.prototype.basicPatternForLength
- *
  * Returns array of basic (non-aligned)
- * dash|gap lengths.
- * The last dash or gap may be truncated.
+ * dash|gap lengths. The last dash or gap
+ * may be truncated.
+ * @author m1b
+ * @version 2022-05-23
  *
  * @param {Number} len - a length in points
  * @returns {Array} array of dash-gap lengths
  */
 Dasher.prototype.basicPatternForLength = function (len) {
 
-    if (len == undefined || len == 0) return;
+    if (
+        len == undefined
+        || len == 0
+    )
+        return;
+
     var pattern = this.pattern,
         advance = 0,
         index = 0,
@@ -64,40 +64,40 @@ Dasher.prototype.basicPatternForLength = function (len) {
         advance += pattern[index];
         index = (index + 1) % pattern.length;
     }
+
     var remainder = len - advance;
-    if (remainder > 0) {
-        result.push(remainder)
-    } else {
+
+    if (remainder > 0)
+        result.push(remainder);
+    else
         result[result.length - 1] += remainder;
-    };
 
     return result;
-}
+
+};
 
 
 
 
 /**
- * Dasher.prototype.alignedPatternForLength
- *
  * Returns array of dash|gap lengths.
  * Attempts to match Illustrator's own
  * dash layout rules for "Align dashes
  * to corners and path ends, adjusting
- * lengths to fit"
+ * lengths to fit".
  *
  * @param {Number} len - a length in points
  * @param {Boolean} dontSplitFirstDash - whether to split first dash between last
  * @returns {Array} array of dash-gap lengths
  */
 Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash) {
-    // returns array of dash|gap lengths
-    // this method attempts to match
-    // Illustrator's own dash layout rules
-    // for "Align dashes to corners and path
-    // ends, adjusting lengths to fit"
 
-    if (len == undefined || len == 0) return;
+    if (
+        len == undefined
+        || len == 0
+    )
+        return;
+
     var pattern = this.pattern,
         patternSum = this.sum,
         patternLength = pattern.length,
@@ -123,7 +123,8 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash) {
         reps = scaleUp > scaleDown ? rc : rf;
 
     // can't have zero reps
-    if (reps == 0) reps = 1;
+    if (reps == 0)
+        reps = 1;
 
     // calculate scale
     var middleWidth = patternSum * reps - firstLength,
@@ -140,41 +141,49 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash) {
         // no room for anthing but a full dash
         result = [len];
 
-    } else if (scaleFactor < 0.5 && patternLength <= 2) {
+    }
+
+    else if (
+        scaleFactor < 0.5
+        && patternLength <= 2
+    ) {
         // start and end dashes only with gap in middle
         result = [middleMaxWidth];
+
         if (!dontSplitFirstDash) {
             // add the start and end dash lengths
             result.unshift(start);
             result.push(end);
         }
 
-    } else {
+    }
+
+    else {
+
         // dash lengths are scaled to fit between start and end lengths
         result = Dasher.getScaledRepetitions(pattern, scaleFactor, reps, dontSplitFirstDash);
+
         if (!dontSplitFirstDash) {
             // add the start and end dash lengths
             result.unshift(start);
             result.push(end);
         }
+
     }
 
     return result;
-}
+
+};
 
 
 
 /**
- * Dasher.getScaledRepetitions
- *
- * Scale and repeat all values
- * in the pattern
- *
- * @param {Array} pattern - array of dash-gap pattern
- * @param {Number} scaleFactor - scale factor
- * @param {Number} reps - number of repetitions
- * @param {Boolean} dontSplitFirstDash - whether to split first dash between last
- * @returns {Array} array of dash-gap lengths
+ * Scale and repeat all values in the pattern.
+ * @param {Array} pattern - array of dash-gap pattern.
+ * @param {Number} scaleFactor - scale factor.
+ * @param {Number} reps - number of repetitions.
+ * @param {Boolean} dontSplitFirstDash - whether to split first dash between last.
+ * @returns {Array} array of dash-gap lengths.
  */
 Dasher.getScaledRepetitions = function (pattern, scaleFactor, reps, dontSplitFirstDash) {
 
@@ -189,20 +198,21 @@ Dasher.getScaledRepetitions = function (pattern, scaleFactor, reps, dontSplitFir
     for (var i = 0; i < reps; i++)
         repeatScaledValues = repeatScaledValues.concat(scaledValues);
 
-    if (!dontSplitFirstDash) {
+    if (!dontSplitFirstDash)
         // remove first dash length when it's divided between start and end
         repeatScaledValues.shift();
-    }
 
     return repeatScaledValues;
-}
+
+};
+
 
 
 
 /**
- * Dasher.prototype.toString
+ * Returns representation of the Dasher instance.
  * @returns {String} representation of the pattern
  */
 Dasher.prototype.toString = function () {
     return '[ ' + this.pattern.join('  ') + ' ]';
-}
+};
