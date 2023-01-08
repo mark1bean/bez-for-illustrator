@@ -10,6 +10,9 @@
         item = doc.selection[0],
         bez = new Bez({ pageItem: item });
 
+    // $/*debug*/.writeln('item.pathPoints[0].anchor = '+item.pathPoints[0].anchor);
+    // return;
+
     $/*debug*/.write('before: ');
     debugShowFirstPoint(bez)
 
@@ -18,11 +21,17 @@
     $/*debug*/.write('after: ');
     debugShowFirstPoint(bez)
 
+    $/*debug*/.writeln('bez.pageItem.pathPoints[0].anchor = ' + bez.pageItem.pathPoints[0].anchor);
+
 
     bez.drawPathIndicators();
 
+    // $/*debug*/.writeln(Math.floor(doc.pageItems[0].pathPoints[0].anchor[0]) + ', ' + Math.floor(bez.pageItem.pathPoints[0].anchor[1]));
+
     function debugShowFirstPoint(bez) {
-        $/*debug*/.writeln('1st ' + Math.floor(bez.paths[0][0].anchor[0]) + ' (' + Math.floor(bez.pageItem.pathPoints[0].anchor[0]) + ')');
+        // $/*debug*/.writeln('1st ' + Math.floor(bez.paths[0][0].anchor[0]) + ' (' + Math.floor(bez.pageItem.pathPoints[0].anchor[0]) + ')');
+        var angle = Bez.getAngleOfPointP1(bez.point(0, 0), bez.point(0, 1));
+        $/*debug*/.writeln('angle = ' + angle);
     }
 
     return;
