@@ -70,6 +70,21 @@ var BezSortType = {
 };
 
 
+/**
+ * The types of hash comparison.
+ * @enum NORMAL - compare the entire hash.
+ * @enum ANGLES_ONLY - compare only angle values of hash.
+ * @enum LENGTHS_ONLY - compare only length ratio values of hash.
+ */
+var BezHashComparisonType = {
+    NORMAL: 'normal',
+    ANGLES_ONLY: 'angles_only',
+    LENGTHS_ONLY: 'lengths_only'
+};
+
+
+
+
 
 /**
  * A general purpose path-manipulation helper object.
@@ -113,7 +128,7 @@ function Bez(options) {
 
     var self = this;
 
-    self.doc = options.doc || getParentDocument(self.pageItem) || app.activeDocument;
+    self.doc = options.doc;
     self.absoluteRotationAngle = options.absoluteRotationAngle || 0;
     self.rotationOffsetFromDatum = options.rotationOffsetFromDatum || 0;
     self.transformPoint = options.transformPoint;
@@ -124,14 +139,25 @@ function Bez(options) {
     self.pathItems = [];
     self.pathPoints = [];
 
-    if (options.pageItem != undefined)
+    if (options.pageItem != undefined) {
+
+        self.doc = self.doc || getParentDocument(self.pageItem);
+
+        if (options.pageItem.parent.typename == 'CompoundPathItem')
+            // handle case where compoundPathItem is partially selected
+            options.pageItem = options.pageItem.parent;
+
         self.consumePageItem(options.pageItem);
+
+    }
 
     else if (options.paths != undefined)
         self.consumePoints(options.paths)
 
     else
         throw Error('new Bez failed: no `pageItem` or `points` supplied.');
+
+    self.doc = self.doc || app.activeDocument;
 
     if (
         self.paths != undefined
@@ -155,6 +181,8 @@ function Bez(options) {
         throw Error('new Bez failed: no `pathClosed` supplied.');
 
 };
+
+
 
 
 /**
@@ -236,6 +264,9 @@ Bez.prototype.getCoordinatesOfTransformPoint = function getCoordinatesOfTransfor
 
 };
 
+
+
+
 /**
  * Returns a function that, given a bez, will
  * return coordinates for a BezPoint specified
@@ -267,6 +298,7 @@ Bez.getCoordinatesOfPoint = function bezGetCoordinatesOf(pathIndex, pointIndex) 
     };
 
 };
+
 
 
 
@@ -303,6 +335,8 @@ Bez.prototype.duplicate = function duplicate(duplicatePageItem) {
     );
 
 }
+
+
 
 
 /**
@@ -388,11 +422,16 @@ Bez.prototype.consumePoints = function (points) {
 };
 
 
+
+
 /**
  * Loads pageItem into the bez.
  * @param {PathItem|CompoundPathItem} pageItem - an Illlustrator PathItem or CompoundPathItem.
  */
 Bez.prototype.consumePageItem = function (pageItem) {
+
+    if (pageItem == undefined)
+        return;
 
     var self = this;
 
@@ -427,6 +466,7 @@ Bez.prototype.consumePageItem = function (pageItem) {
     }
 
 };
+
 
 
 
@@ -738,7 +778,7 @@ Bez.pathItemsFromInterpolation = function pathItemsFromInterpolation(options) {
  *     will add a point at distance 3 and then
  *     at distance 6 in each segment.
  *     @example
- *       bez.addPoints({ values: [3, 6] });
+ *       bez.addPoints({ lengths: [3, 6] });
  *
  * More options:
  *  • retractControlPoints - will convert points into
@@ -758,6 +798,7 @@ Bez.pathItemsFromInterpolation = function pathItemsFromInterpolation(options) {
  * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: false).
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
  * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
+ * @param {Function} [options.valueFunction] - a function to modify each calculated tValue (default: undefined).
  */
 Bez.prototype.addPoints = function addPoints(options) {
 
@@ -825,7 +866,7 @@ Bez.prototype.addPoints = function addPoints(options) {
  * @param {Number} [options.numberOfPoints] - the number of points to add between existing points.
  * @param {Array<Number>} [options.values] - array of numbers in range 0..1.
  * @param {Array<Number>} [options.lengths] - array of numbers representing lengths in points at which to add points.
- * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: false).
+ * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: true).
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
  * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
  */
@@ -841,7 +882,7 @@ Bez.addPoints = function addPoints(options) {
         values = options.values,
         lengths = options.lengths,
         filterFunction = options.filterFunction,
-        selectedSegmentsOnly = options.selectedSegmentsOnly === true,
+        selectedSegmentsOnly = options.selectedSegmentsOnly !== false,
         retractControlPoints = options.retractControlPoints === true;
 
     if (
@@ -863,7 +904,7 @@ Bez.addPoints = function addPoints(options) {
         distance == Infinity;
 
     pathsLoop:
-    for (var i = 0; i < paths.length; i++) {
+    for (var i = 0, l = paths.length; i < l; i++) {
 
         var points = paths[i].slice(),
             closed = pathClosed[i],
@@ -885,15 +926,13 @@ Bez.addPoints = function addPoints(options) {
 
             if (p2 == undefined) {
                 newPoints.push(p1);
-                break;
+                break pointsLoop;
             }
+
 
             if (
                 selectedSegmentsOnly
-                && (
-                    p1.pathPoint.selected == PathPointSelection.NOSELECTION
-                    || p2.pathPoint.selected == PathPointSelection.NOSELECTION
-                )
+                && !Bez.segmentIsSelected(p1, p2)
             )
                 // segment wasn't selected
                 skipThisSegment = true;
@@ -1039,8 +1078,7 @@ Bez.prototype.eachPoint = function eachPoint(options) {
         var points = self.paths[i],
             closed = self.pathsClosed[i],
             pointsCount = points.length,
-            newPoints = [],
-            angle;
+            result = {};
 
         pointsLoop:
         for (var j = 0; j < pointsCount; j++) {
@@ -1055,14 +1093,15 @@ Bez.prototype.eachPoint = function eachPoint(options) {
                 p1 = points[index1],
                 p2 = index0 < pointsCount ? points[index2] : undefined;
 
+            // $/*debug*/.writeln('p0 = ' + p0);
+            // $/*debug*/.writeln('p1 = ' + p1);
+            // $/*debug*/.writeln('p2 = ' + p2);
+
             if (closed && p0 == undefined)
                 p0 = points[pointsCount - 1];
 
             if (closed && p2 == undefined)
                 p2 = points[0];
-
-            // if (p2 == undefined)
-            //     break pointsLoop;
 
             if (
                 selectedSegmentsOnly
@@ -1084,12 +1123,7 @@ Bez.prototype.eachPoint = function eachPoint(options) {
             // $/*debug*/.writeln(j + ': p1.angle = ' + p1.angle + '\u00B0');
 
             // execute the function
-            var newPoint = fn(self.doc, p0, p1, p2, j, i);
-
-            if (newPoint != undefined) {
-                redraw = true;
-                self.paths[i] = newPoint;
-            }
+            fn(self, p0, p1, p2, j, i, result);
 
         }
 
@@ -1097,6 +1131,281 @@ Bez.prototype.eachPoint = function eachPoint(options) {
 
     if (redraw)
         self.draw({ select: isSelected });
+
+    return result;
+
+};
+
+
+
+/**
+ * Can be used in two ways:
+ * 1. if no `checkHash` parameter is given, returns
+ * a hash - a string containing information about
+ * the path item (see example below). The hash can
+ * be used to identify a path item no matter its
+ * position, scale and rotation. The has will also
+ * be stored in the bez's hash property.
+ * 2. with `checkHash` and tolerance values given,
+ * returns true if the hash matches checkHash.
+ * Note: it will exit as soon as a check fails and
+ * won't continue calculating the hash.
+ *
+ * Example hash of a rectangle:
+ *   [270, 0.28571, 270, 0.21428, 270, 0.28571, 270, 0.21428]
+ * The hash is an array of numbers [angle, length, angle, length]
+ * where "angle" = angle of segment relative to previous segment, 270° = -90°.
+ * and "length" = length of segment expressed as proportion of total path length.
+ *
+ * @author m1b
+ * @version 2023-01-16
+ * @param {String} checkHash - another hash to match.
+ * @param {Number} angleTolerance - how close, in degrees, angles must be to be considered matching.
+ * @param {Number} lengthRatioTolerance - how close, as a proportion of total path, lengths must be to be considered matching.
+ * @returns {String|Boolean}
+ */
+Bez.prototype.makeHash = function myHash(checkHash, angleTolerance, lengthRatioTolerance) {
+
+    var self = this,
+        digest = [],
+        angleTolerance = angleTolerance || 0.01,
+        lengthRatioTolerance = lengthRatioTolerance || 0.001,
+        precision = 5, // decimal places shown in hash
+        pathsLengths = [],
+        pathStartAngle = 0,
+        checker;
+
+    if (checkHash != undefined)
+
+        // split the checking hash into stack of elements
+        checker = checkHash.match(/([A-Z]|[0-9\-\.]+)/g);
+
+    pathsLoop:
+    for (var i = 0; i < self.paths.length; i++) {
+
+        var points = self.paths[i].slice(),
+            closed = self.pathsClosed[i],
+            pathLength = 0;
+
+        if (!addToDigest(['P', points.length], checker))
+            return false;
+
+        if (
+            closed == true
+            && !addToDigest(['C'], checker)
+        )
+            return false;
+
+        points.push(points[0]);
+
+        // 1. the first loop gathers information about the path
+
+        pointsLoop1:
+        for (var j = 1; j < points.length; j++) {
+
+            // add segmentLength property to the 2nd point of each segment
+            points[j].segmentLength = Bez.segmentLength(points[j - 1], points[j]);
+
+            // sum the lengths to get the total path length
+            pathLength += points[j].segmentLength;
+
+            // add angle property to most points
+            points[j - 1].angle = Bez.getAngleOfPointP1(points[j - 1], points[j]);
+
+            // add the angle delta between this path and the previous path
+            if (
+                i > 0
+                && j == 1
+                && !addToDigest(
+                    ['D', round((points[j - 1].angle - pathStartAngle + 360) % 360, precision, true)],
+                    checker, angleTolerance)
+            )
+                return false;
+
+            if (j == 1)
+                pathStartAngle = points[j - 1].angle;
+
+        }
+
+        pathsLengths[i] = pathLength;
+
+        // 2. the second loop adds to the digest
+
+        pointsLoop2:
+        for (var j = 0; j < points.length - 1; j++) {
+
+            var segmentRatio = (points[j].segmentLength || 0) / pathLength,
+                angleDelta = (points[j + 1].angle || 0) - (points[j].angle || 0);
+
+            if (
+                !addToDigest(
+                    [
+                        'A', round((angleDelta + 360) % 360, precision, true),
+                    ], checker, angleTolerance)
+            )
+                return false;
+
+            if (
+                !addToDigest(
+                    [
+                        'R', round(segmentRatio, precision, true),
+                    ], checker, lengthRatioTolerance)
+            )
+                return false;
+
+        }
+
+    }
+
+    if (
+        checker != undefined
+        && checker.length !== 0
+    )
+        // by now the checker would have
+        // been emptied by an exact match
+        return false;
+
+    if (checker != undefined)
+        // if there is a checker, the check
+        // has passed and the hashes match
+        return true;
+
+    // return the new hash
+    self.hash = digest.join('');
+    return self.hash;
+
+
+    /**
+     * Adds `obj` to the digest and returns true.
+     * If `checker` is also supplied will only
+     * return true when obj matches the first
+     * element of the check stack. Note: will
+     * remove first element from the checker array.
+     * @param {Array<String|Number>} arr - an array of elements.
+     * @param {Array<String|Number>} [checker] - an array of digest elements to compare against.
+     * @returns {Boolean} - true, unless failed check.
+     */
+    function addToDigest(arr, checker, tolerance) {
+
+        if (arr.constructor.name != 'Array')
+            arr = [arr];
+
+        if (checker != undefined) {
+
+            if (
+                checker.length == 0
+                || checker.length < arr.length
+            )
+                return false;
+
+            for (var i = 0; i < arr.length; i++) {
+
+                // compare element against the checker
+
+                // $/*debug*/.writeln('(B) checking ' + checker.length + ':  ' + arr[i] + '--' + checker[0]);
+
+                var ch = checker.shift(),
+                    d = Number(ch) - Number(arr[i]);
+
+                if (isNaN(d) && ch != arr[i]) {
+                    // strings don't match
+                    // $/*debug*/.writeln('failed due to strings mismatch');
+                    return false;
+                }
+
+                else if (Math.abs(d) > (tolerance || 0.01)) {
+
+                    // numbers are too different
+                    // $/*debug*/.writeln('failed due to numbers difference');
+                    return false;
+
+                }
+            }
+
+        }
+
+        digest = digest.concat(arr);
+        return true;
+
+    };
+
+};
+
+
+/* XXX */
+Bez.prototype.makeHash2 = function myHash(checkHash, angleTolerance, lengthRatioTolerance) {
+
+    var self = this,
+        digest = [],
+        angleTolerance = angleTolerance || 0.01,
+        lengthRatioTolerance = lengthRatioTolerance || 0.001,
+        precision = 1, // decimal places shown in hash
+        pathsLengths = [],
+        pathStartAngle = 0,
+        checker;
+
+    if (checkHash != undefined)
+
+        // split the checking hash into stack of elements
+        checker = checkHash.slice();
+
+    pathsLoop:
+    for (var i = 0; i < self.paths.length; i++) {
+
+        var points = self.paths[i].slice(),
+            pathLength = 0;
+
+        points.push(points[0]);
+
+        // 1. the first loop gathers information about the path
+
+        pointsLoop1:
+        for (var j = 1; j < points.length; j++) {
+
+            // add segmentLength property to the 2nd point of each segment
+            points[j].segmentLength = Bez.segmentLength(points[j - 1], points[j]);
+
+            // sum the lengths to get the total path length
+            pathLength += points[j].segmentLength;
+
+            // add angle property to most points
+            points[j - 1].angle = Bez.getAngleOfPointP1(points[j - 1], points[j]);
+
+            // // add the angle delta between this path and the previous path
+            // if (
+            //     i > 0
+            //     && j == 1
+            //     && !addToDigest(
+            //         ['D', round((points[j - 1].angle - pathStartAngle + 360) % 360, precision, true)],
+            //         checker, angleTolerance)
+            // )
+            //     return false;
+
+            if (j == 1)
+                pathStartAngle = points[j - 1].angle;
+
+        }
+
+        pathsLengths[i] = pathLength;
+
+        // 2. the second loop adds to the digest
+
+        pointsLoop2:
+        for (var j = 0; j < points.length - 1; j++) {
+
+            var angleDelta = (points[j + 1].angle || 0) - (points[j].angle || 0),
+                segmentRatio = (points[j].segmentLength || 0) / pathLength;
+
+            digest.push(round((angleDelta + 360) % 360, precision, true));
+            digest.push(round(segmentRatio, precision, true));
+
+        }
+
+    }
+
+    self.hash = digest;
+
+    return digest;
 
 };
 
@@ -1282,8 +1591,10 @@ Bez.prototype.getPolygon = function getPolygon(flatness) {
             pathsClosed: self.pathsClosed,
         });
 
+    $/*debug*/.writeln('paths = ' + paths);
+
     // now convert the BezPoints to an simple array
-    var paths = [];
+    var polyPaths = [];
 
     for (var i = 0; i < paths.length; i++) {
 
@@ -1294,23 +1605,23 @@ Bez.prototype.getPolygon = function getPolygon(flatness) {
 
         path.area = getPolygonArea(path.points);
 
-        paths.push(path);
+        polyPaths.push(path);
 
     }
 
     // sort by area, largest first
-    paths.sort(function (a, b) { return b.area - a.area });
+    polyPaths.sort(function (a, b) { return b.area - a.area });
 
-    if (Math.abs(paths[0].area) < Math.abs(paths[paths.length - 1].area))
+    if (Math.abs(polyPaths[0].area) < Math.abs(polyPaths[polyPaths.length - 1].area))
 
         // reverse the polarity!
-        paths.sort(function (a, b) { return a.area - b.area });
+        polyPaths.sort(function (a, b) { return a.area - b.area });
 
     // format as simple polygon points (first element is outer path)
     var polygon = [];
 
-    for (var i = 0; i < paths.length; i++)
-        polygon.push(paths[i].points);
+    for (var i = 0; i < polyPaths.length; i++)
+        polygon.push(polyPaths[i].points);
 
     return polygon;
 
@@ -1323,19 +1634,20 @@ Bez.prototype.getPolygon = function getPolygon(flatness) {
  * Reverses the order of path points.
  * @author m1b
  * @version 2022-12-22
+ * @param {Object} options
  * @param {Number} [pathIndex] - the index to the path (default: all paths).
- * @param {Boolean} [redraw] - whether to redraw the bez (default: true).
+ * @param {Boolean} [redraw] - whether to redraw the pageItem (default: true).
  */
-Bez.prototype.reverse = function reverse(pathIndex, redraw) {
+Bez.prototype.reverse = function reverse(options) {
+
+    options = options || {};
 
     var self = this,
+        pathIndex = options.pathIndex,
         start = 0,
         end = self.paths.length,
+        redraw = options.redraw !== false,
         isSelected = self.pathItems[pathIndex || 0].selected == true;
-
-    redraw = redraw !== false;
-
-    $/*debug*/.writeln('redraw = ' + redraw);
 
     if (
         pathIndex != undefined
@@ -1349,23 +1661,39 @@ Bez.prototype.reverse = function reverse(pathIndex, redraw) {
 
     }
 
+    pathsLoop:
     for (var i = start; i < end; i++) {
-        var points = self.paths[i],
+
+        var points = self.paths[i].slice(),
             closed = self.pathsClosed[i],
-            newPoints = points.slice().reverse(),
-            len = newPoints.length - 1;
+            pointsCount = points.length,
+            newPoints = [];
+
+        $/*debug*/.writeln(points[0].anchor.join(', '));
+
+        points.reverse();
+
+        $/*debug*/.writeln(points[0].anchor.join(', '));
 
         if (closed)
             // we still want the path to
             // start on the same point
-            newPoints.unshift(newPoints.pop());
+            points.unshift(points.pop());
 
-        //swap all the control points L <-> R
-        for (var j = 0; j <= len; j++) {
-            var p = newPoints[j],
-                left = p.leftDirection;
+        $/*debug*/.writeln(points[0].anchor.join(', '));
+
+        pointsLoop:
+        for (var j = 0; j < pointsCount; j++) {
+
+            var p = points[j];
+
+            // swap control points around
+            var left = p.leftDirection;
             p.leftDirection = p.rightDirection;
             p.rightDirection = left;
+
+            // newPoints.push(p);
+            newPoints[j] = p;
         }
 
         self.paths[i] = newPoints;
@@ -1828,13 +2156,6 @@ Bez.getTValues = function getTValues(options) {
     )
         return;
 
-    // set up negative lengths
-    for (var i = 0; i < lengths.length; i++)
-        if (lengths[i] < 0)
-            lengths[i] += segmentLength;
-
-    lengths.sort(function (a, b) { return a - b });
-
     for (var i = 0; i < lengths.length; i++) {
 
         var t = Bez.tForLength(q, lengths[i], k);
@@ -1846,7 +2167,7 @@ Bez.getTValues = function getTValues(options) {
 
     }
 
-    return tValues;
+    return tValues.sort();
 
 
     /**
@@ -1924,7 +2245,6 @@ Bez.getTValues = function getTValues(options) {
 
         for (var i = 0; i < values.length; i++)
             lengths.push(segmentLength * values[i]);
-        // lengths.push(Bez.tForLength(q, segmentLength * values[i], k));
 
         return lengths;
 
@@ -2147,8 +2467,8 @@ Bez.tForLength = function tForLength(q, len, k) {
  */
 Bez.prototype.draw = function draw(options) {
 
-// NOTE BUG: Illustrator reverses the path direction
-// in cases where the final point is
+    // NOTE BUG: Illustrator reverses the path direction
+    // in cases where the final point is
 
     options = options || {};
 
@@ -2233,33 +2553,36 @@ Bez.draw = function bezDraw(options) {
     var pathsCount = paths.length - 1;
     for (var i = pathsCount; i >= 0; i--) {
 
-        // create a path item
-        var item = location.pathItems.add(),
-            points = paths[i];
+        var points = paths[i],
+            pointsCount = points.length - 1,
+            counter = pointsCount + 1,
+
+            // create a path item
+            item = location.pathItems.add();
+
+        // set the polarity
+        item.polarity = i == 0 ? PolarityValues.POSITIVE : PolarityValues.NEGATIVE;
+
+        // add the pathPoints
+        for (var j = 0; j < points.length; j++) {
+
+            var p = item.pathPoints.add();
+            p.anchor = points[j].anchor;
+            p.leftDirection = points[j].leftDirection;
+            p.rightDirection = points[j].rightDirection;
+            p.pointType = points[j].pointType;
+
+            // $/*debug*/.writeln('j = ' + j + '  p.anchor = ' + p.anchor.join(', '));
+
+        }
+
+        item.closed = pathsClosed[i];
 
         if (
             i == 0
             && pageItem == undefined
         )
             pageItem = item;
-
-        // add points to it
-        for (var j = 1; j < points.length; j++) {
-
-            var p1 = points[j - 1],
-                p2 = points[j];
-
-            if (j == 1)
-                // add p1 of first segment
-                addPoint(item, p1);
-
-            // add p2
-            addPoint(item, p2);
-
-        }
-
-        item.closed = pathsClosed[i];
-        item.polarity = i == 0 ? PolarityValues.POSITIVE : PolarityValues.NEGATIVE;
 
     }
 
@@ -3651,7 +3974,11 @@ Bez.addExtrema = function addExtrema(options) {
 Bez.prototype.select = function select() {
 
     var self = this;
-    if (self.pageItem)
+
+    if (
+        self.pageItem != undefined
+        && self.pageItem.hasOwnProperty('selected')
+    )
         self.pageItem.selected = true;
 
 };
@@ -4474,9 +4801,10 @@ function toggle(n, m) {
  * Rounds a single number or an array of numbers
  * @param {Number|Array<Number>} nums - the number or numbers to round.
  * @param {Number} [places] - decimal places (default: 1).
+ * @param {Boolean} [floor] - whether to floor the result (default: false).
  * @returns {Number|Array<Number>} the rounded number or numbers.
  */
-function round(nums, places) {
+function round(nums, places, floor) {
 
     places = Math.pow(10, places || 1);
 
@@ -4486,7 +4814,10 @@ function round(nums, places) {
         nums = [nums];
 
     for (var i = 0; i < nums.length; i++)
-        result[i] = Math.round(nums[i] * places) / places;
+        if (floor === true)
+            result[i] = Math.floor(nums[i] * places) / places;
+        else
+            result[i] = Math.round(nums[i] * places) / places;
 
     return nums.length == 1 ? result[0] : result;
 
@@ -4677,6 +5008,30 @@ Bez.isCurvedSegment = function isCurvedSegment(p1, p2) {
 
 
 /**
+ * Returns true when the segment p1p2 is selected.
+ * Important! Does not check if pathPoints exist.
+ * @param {BezPoint} p1 - a BezPoint with a pathPoint.
+ * @param {BezPoint} p2 - a BezPoint with a pathPoint.
+ * @returns {Boolean}
+ */
+Bez.segmentIsSelected = function bezSegmentIsSelected(p1, p2) {
+
+    return !(
+        (
+            p1.pathPoint.selected == PathPointSelection.LEFTDIRECTION
+            || p1.pathPoint.selected == PathPointSelection.NOSELECTION
+        )
+        && (
+            p2.pathPoint.selected == PathPointSelection.RIGHTDIRECTION
+            || p2.pathPoint.selected == PathPointSelection.NOSELECTION
+        )
+    );
+
+};
+
+
+
+/**
  * Returns a page item's Document.
  * @param {PageItem} obj - a page item
  * @returns {Document} the page item's document
@@ -4725,7 +5080,10 @@ function itemsInsideGroupItems(items, typenames, level) {
 
             var item = items[i];
 
-            if (item.uuid == undefined)
+            if (
+                item.uuid == undefined
+                || item.parent.typename == 'CompoundPathItem'
+            )
                 continue;
 
             if (item.typename == 'GroupItem') {
@@ -4803,5 +5161,335 @@ function getCentroid(polygon) {
 };
 
 
+
+
+/**
+ * Compares two arrays and returns
+ * a score between 0 and 1 based
+ * on how similar they are, where
+ * 1 means an exact match.
+ * @author ChatGTP Jan 30 version
+ * @version 2023-02-05
+ * @param {Array<Number>} arr1 - an array to compare.
+ * @param {Array<Number>} arr2 - an array to compare.
+ * @param {Number} [start] - the index of the first element to compare (default: 0).
+ * @param {Number} [inc] - the increment (default: 1).
+ * @returns {Number} - the score.
+ */
+function compareArraysWithDifference(arr1, arr2, start, inc) {
+
+    start = start || 0;
+    inc = inc || 1;
+
+    var score = 0,
+        maxValue = -1,
+        maxDiff = 0,
+        len = Math.max(arr1.length, arr2.length);
+
+    for (var i = start; i < len; i += inc) {
+
+        var v1 = arr1[i] || 0,
+            v2 = arr2[i] || 0;
+
+        maxDiff = Math.max(maxDiff, Math.abs(v1 - v2));
+
+        if (v1 > maxValue)
+            maxValue = v1;
+
+    }
+
+    score = 1 - maxDiff / maxValue;
+
+    var shift = 0;
+    for (var i = start; i < len; i += inc) {
+
+        var j = (i + shift) % len;
+
+        if (arr1[i] !== arr2[j])
+            shift++;
+
+    }
+
+    var scoreWithShift = 1 - shift / len;
+
+    return Math.max(score, scoreWithShift);
+
+};
+
+
+
+Bez.prototype.similarityTo = function similarityTo(bez, options) {
+
+    options = options || {};
+
+    var onlyCompareAngles = options.onlyCompareAngles === true,
+        onlyCompareLengths = options.compareLengths !== false;
+
+}
+
+// /**
+//  * Compare two Bez hashes and return
+//  * a score of similarity.
+//  * @author m1b
+//  * @version 2023-02-08
+//  * @param {Array<Number>} hash1 - a Bez hash to compare.
+//  * @param {Array<Number>} hash2 - a Bez hash to compare.
+//  * @param {Bool} compareAngles - whether to compare angle values of hash (default: true).
+//  * @param {Bool} compareLengthRatios - whether to compare length ratio values of hash (default: true).
+//  */
+// Bez.compareHashes = function bezCompareHashes(hash1, hash2, compareAngles, compareLengthRatios) {
+
+//     if (
+//         compareAngles === false
+//         && compareLengthRatios === false
+//     )
+//         return;
+
+//     var len = Math.max(hash1.length, hash2.length),
+//         start = (compareAngles === false || compareLengthRatios === false) ? ;
+
+//     if (compareAngles === false) {
+//         for (var i = start; i < len; i += 2) {
+//             var item = items[i];
+//         }
+
+//     }
+
+// }
+
+
 var inch = 72;
 var mm = 2.834645669;
+
+
+
+
+/**
+ * A general purpose path-manipulation helper object
+ * for a group of Bez objects.
+ * @author m1b
+ * @version 2023-01-23
+ *
+ * Notes:
+ *
+ * @example - make BezGroup from a groupItem
+ *   var bg = new BezGroup({ groupItem: item });
+ *
+ * @example - make BezGroup from array of pageItems or bezs
+ *   var bg = new Bez({ items: myItemsArray });
+ *
+ * @param {Object} options
+ * @param {PathItem} [options.groupItem] - an Illustrator GroupItem.
+ * @param {Array<Bez|PageItem>} [options.items] - the items to add to the BezGroup.
+ * @param {Number} [options.absoluteRotationAngle] - the current absolute rotation value of the bez (default: 0).
+ * @param {Number} [options.rotationOffsetFromDatum] - the number of degrees to offset the rotation datum calculation (default: 0).
+ * @param {Array<BezPoint>|BezTransformPositionType|Function} [options.transformPoint] - can be [x, y] coordinates, a BezTransformPositionType, or a function that returns coordinates, given the bez (default: undefined).
+ */
+function BezGroup(options) {
+
+    var self = this;
+
+    self.doc = options.doc;
+    self.absoluteRotationAngle = options.absoluteRotationAngle || 0;
+    self.rotationOffsetFromDatum = options.rotationOffsetFromDatum || 0;
+    self.transformPoint = options.transformPoint;
+
+    self.items = [];
+
+    if (options.groupItem != undefined) {
+
+        self.groupItem = options.items;
+        self.consumeItems(options.groupItem.pageItems);
+        self.doc = self.doc || getParentDocument(self.groupItem);
+
+    }
+
+    else if (options.items != undefined) {
+
+        self.consumeItems(options.items);
+        self.doc = self.doc || getParentDocument(self.items[0]);
+
+    }
+
+    else
+        throw Error('new BezGroup failed: no `groupItem` or `items` supplied.');
+
+    self.doc = self.doc || app.activeDocument;
+
+};
+
+
+
+
+/**
+ * Loads groupItem into the bezGroup.
+ * @param {PathItem|CompoundPathItem} items - an Illlustrator GroupItem.
+ */
+BezGroup.prototype.consumeItems = function (items) {
+
+    var self = this;
+
+    if (self.groupItem == undefined)
+        return;
+
+    for (var i = 0; i < items.length; i++) {
+
+        var item = items[i];
+
+        if (
+            item.typename == 'CompoundPathItem'
+            || item.typename == 'PathItem'
+        )
+            // add bez to the bezGroup
+            self.items.push(new Bez({ pageItem: item }))
+
+        else if (item.typename == 'GroupItem')
+            // add bezGroup to the bezGroup
+            self.items.push(new BezGroup({ groupItem: item }));
+
+        else
+            // add page item to the bezGroup
+            self.items.push(item);
+
+    }
+
+};
+
+
+
+
+/**
+ * Rotate the bez's points.
+ * @author m1b
+ * @version 2023-01-01
+ * @param {Object} options
+ * @param {Number} options.angle - the rotation angle in degrees.
+ * @param {BezTransformPositionType} [options.transformPositionType] - a transformPositionType (default: undefined).
+ * @param {BezRotationType} [options.rotationType] - (default: BezRotationType.NORMAL).
+ * @param {Number} [options.angleOffset] - an additional rotation (default: 0).
+ * @param {Array<Number>} [options.transformPoint] - the point to transform from (default: bezGroup's transformPoint or undefined).
+ * @param {Function} [options.angleFunction] - a function, given the point, that modifies the angle for each point (default: undefined).
+ * @param {Function} [options.filterFunction] - a function, given the point, that decides whether to rotate the point (default: undefined).
+ * @param {Boolean} [option.selectedPointsOnly] - whether to rotate only the selected points (default: false).
+ * @param {Boolean} [options.redraw] - whether to redraw the bez (default: true).
+ * @param {Boolean} [options.updateAbsoluteRotation] - whether to update the bez's absoluteRotation value (default: true when all points are rotated).
+*/
+BezGroup.prototype.rotate = function rotate(options) {
+
+    options = options || {};
+
+    var self = this,
+        angle = Number(options.angle),
+        transformPositionType = options.transformPositionType,
+        rotationType = options.rotationType || BezRotationType.NORMAL,
+        angleOffset = Number(options.angleOffset || 0),
+        transformPoint = options.transformPoint,
+        angleFunction = options.angleFunction,
+        filterFunction = options.filterFunction,
+        // selectedPointsOnly = options.selectedPointsOnly === true,
+        redraw = options.redraw !== false,
+        isSelected = self.pageItem && self.pageItem.selected == true,
+        updateAbsoluteRotationAngle = options.updateAbsoluteRotation !== false,
+        absoluteRotationAngle,
+        tp = transformPoint;
+
+    if (
+        angle == undefined
+        || isNaN(angle)
+    )
+        throw Error('Bez.prototype.rotate failed: bad `angle` supplied. (' + angle + ')');
+
+    // get transformation point
+    var tp = self.getCoordinatesOfTransformPoint(options);
+
+    if (
+        tp == undefined
+        || tp.constructor.name != 'Array'
+        || tp.length !== 2
+    )
+        throw Error('Bez.prototype.rotate failed: could not determine `transformPoint`. (' + transformPoint + ')');
+
+    // $/*debug*/.writeln('angle = ' + angle);
+
+    if (rotationType == BezRotationType.FROM_DATUM) {
+        var d = self.getRotationDatum();
+        angle += d - (d - self.rotationOffsetFromDatum || 0);
+    }
+
+    // $/*debug*/.writeln('self.getRotationDatum() = ' + self.getRotationDatum());
+    // $/*debug*/.writeln('offset = ' + (self.rotationOffsetFromDatum || 0));
+    // $/*debug*/.writeln('angle = ' + angle);
+
+    // rotate the points
+
+    pathsLoop:
+    for (var i = 0; i < points.length; i++) {
+
+        var newPoints = [];
+
+        pointsLoop:
+        for (var j = 0; j < points[i].length; j++) {
+
+            var p = points[i][j],
+                skipThisPoint = false;
+
+            if (
+                selectedPointsOnly
+                && p.pathPoint != undefined
+                && p.pathPoint.selected !== PathPointSelection.ANCHORPOINT
+            )
+                // segment wasn't selected
+                skipThisPoint = true;
+
+            if (
+                filterFunction != undefined
+                && filterFunction(p) == false
+            )
+                // segment failed the filter function
+                skipThisPoint = true;
+
+            if (skipThisPoint) {
+                // just add the original point back in
+                newPoints.push(p);
+                updateAbsoluteRotationAngle = false;
+                continue pointsLoop;
+            }
+
+            // $/*debug*/.writeln('angle = ' + angle);
+
+            var a = angle;
+            if (angleFunction != undefined)
+                a = angleFunction(p, a + angleOffset);
+
+            // $/*debug*/.writeln('a = '+a+'  tp = '+tp);
+
+            // rotate the point
+            newPoints.push(p.rotate(tp, a));
+
+            // keep track of the absolute rotation (if applicable)
+            if (absoluteRotationAngle == undefined)
+                absoluteRotationAngle = a;
+
+            if (
+                updateAbsoluteRotationAngle == true
+                && absoluteRotationAngle != a
+            )
+                updateAbsoluteRotationAngle = false;
+
+        }
+
+        // update the points
+        self.paths[i] = newPoints;
+
+    }
+
+    if (
+        updateAbsoluteRotationAngle == true
+        && absoluteRotationAngle != undefined
+    )
+        self.absoluteRotationAngle = absoluteRotationAngle;
+
+    if (redraw)
+        self.draw({ select: isSelected });
+
+};
