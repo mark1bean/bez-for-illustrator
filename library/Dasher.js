@@ -3,7 +3,7 @@
  * to match Illustrator's own algorithm
  *
  * usage:
- * var dasher = new Dasher([12,6]);
+ * var myDash = new Dasher([12,6]);
  *
  * @param {Array} pattern - an array [dash, gap, dash, gap, ...]
  */
@@ -14,9 +14,18 @@ function Dasher(pattern) {
     if (pattern.constructor.name != 'Array')
         return;
 
-    if (pattern.length == 1)
-        // add a gap same as the dash
-        pattern[1] = pattern[0];
+    // fix bad zeros
+    for (var i = 0; i < pattern.length; i++) {
+        if (pattern[i] == 0)
+            if (i % 2 == 1)
+                // it's okay to have a dash gap of zero,
+                // but for reasons we'll replace with tiny amount
+                pattern[i] = Number.MIN_VALUE; //XXX
+
+            else
+                // cannot have a dash length of zero
+                throw Error('Dasher: pattern cannot have zero-width dash. [' + pattern + ']');
+    }
 
     if (pattern.length % 2 == 1)
         // if odd number of dash lengths, double it
