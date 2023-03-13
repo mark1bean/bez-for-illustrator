@@ -3835,7 +3835,7 @@ Bez.prototype.divideByPatternLengths = function divideByPatternLengths(options) 
     }
 
     // Explr.init(paths);
-    return;
+    // return;
 
     // draw to illustrator
     var pathItems = Bez.draw({
@@ -3928,7 +3928,12 @@ BezSection.prototype.getDashPoints = function getDashPoints(dashStack, alignDash
         || dashStack.length == 0
     )
         return [];
-    Explr.init(dashStack);
+
+    var self = this,
+        tolerance = 0.001;
+
+    // Explr.init(dashStack);
+
     // add a zero dashLength to start of dashStack
     // to represent the starting position
     dashStack.unshift(0);
@@ -3938,11 +3943,13 @@ BezSection.prototype.getDashPoints = function getDashPoints(dashStack, alignDash
     var lastDashLength = alignDashes ? dashStack.pop() : 0;
 
     // the points of this section
-    var pointStack = this.points.slice(),
+    var pointStack = self.points.slice(),
         dashPoints = [];
 
     // an alternator for the dashStack (1=dash, 0=gap)
-    var dashOrGap = 1;
+    // var dashOrGap = 1;
+
+    // Explr.init(pointStack);
 
     // the segment's two points
     var p1, p2;
@@ -3953,19 +3960,21 @@ BezSection.prototype.getDashPoints = function getDashPoints(dashStack, alignDash
         // segment points p1 and p2
         p1 = BezPoint.convertPoint(pointStack.shift());
         p2 = BezPoint.convertPoint(pointStack[0]);
-        // p2 = pointStack[0];
-
-        $/*debug*/.writeln('* pointStack[0] = ' + pointStack[0]);
-        $/*debug*/.writeln('*     p2.length = ' + p2.length);
 
         // the length in pts of this path segment
         var segmentLength = p2.length;
         // the position in pts along this path segment
         var segmentAdvance = 0;
 
+        var testConsole = [];
+
         // while the dash falls inside this segment
         dashLoop:
-        while (segmentAdvance + dashStack[0] < segmentLength) {
+        while (
+            dashStack.length &&
+            (segmentAdvance + dashStack[0]) - segmentLength < tolerance
+        ) {
+            $/*debug*/.writeln('a (segmentAdvance + dashStack[0]) - segmentLength = ' + ((segmentAdvance + dashStack[0]) - segmentLength));
 
             $/*debug*/.writeln('> p1 = ' + p1);
             $/*debug*/.writeln('  p2 = ' + p2);
@@ -3977,9 +3986,13 @@ BezSection.prototype.getDashPoints = function getDashPoints(dashStack, alignDash
             var dashLength = dashStack.shift();
             $/*debug*/.writeln('  dashLength = ' + dashLength);
 
-            // first dash is zero length
+            // for zero-length we duplicate p1
             if (dashLength == 0) {
-                dashPoints.push(Bez.convertPoint(p1));
+                $/*debug*/.writeln('whooah');
+                var dup = BezPoint.convertPoint(p1);
+                dup.endOfDash = false;
+                dashPoints.push(dup);
+                testConsole.push([dup, dashLength, segmentAdvance, segmentLength]);
                 continue dashLoop;
             }
 
@@ -3997,62 +4010,76 @@ BezSection.prototype.getDashPoints = function getDashPoints(dashStack, alignDash
             $/*debug*/.writeln('splitPoints = ' + splitPoints);
 
             // update previous dashPoint's handles
-            if (dashOrGap == 1) {
-                dashPoints[dashPoints.length - 1].leftDirection = splitPoints[0].leftDirection;
-                dashPoints[dashPoints.length - 1].rightDirection = splitPoints[0].rightDirection;
-            }
+            // if (dashOrGap == 1) {
+            dashPoints[dashPoints.length - 1].leftDirection = splitPoints[0].leftDirection;
+            dashPoints[dashPoints.length - 1].rightDirection = splitPoints[0].rightDirection;
+            // }
 
             // add the new dashPoint
             dashPoints.push(splitPoints[1]);
+            testConsole.push([splitPoints[1], dashLength, segmentAdvance, segmentLength]);
 
             // update next point
             pointStack[0] = splitPoints[2];
 
             // split becomes new segment
-            p1 = dashPoints[dashPoints.length - 1];
+            p1 = BezPoint.convertPoint(dashPoints[dashPoints.length - 1]);
             p2 = pointStack[0];
 
-            // flag if end of dash
-            if (dashOrGap == 1) {
-                $/*debug*/.writeln('>> adding endOfDash to ' + dashPoints[dashPoints.length - 1]);
-                $/*debug*/.writeln('     | segmentAdvance = ' + segmentAdvance);
-                $/*debug*/.writeln('     | segmentLength = ' + segmentLength);
-                $/*debug*/.writeln('     | dashLength = ' + dashLength);
-                $/*debug*/.writeln('     | dashStack[0] = ' + dashStack[0]);
-                dashPoints[dashPoints.length - 1].endOfDash = (dashOrGap == 1);
-            }
+            // // flag if end of dash
+            // if (dashOrGap == 1) {
+            //     $/*debug*/.writeln('>> adding endOfDash to ' + dashPoints[dashPoints.length - 1]);
+            //     $/*debug*/.writeln('     | segmentAdvance = ' + segmentAdvance);
+            //     $/*debug*/.writeln('     | segmentLength = ' + segmentLength);
+            //     $/*debug*/.writeln('     | dashLength = ' + dashLength);
+            //     $/*debug*/.writeln('     | dashStack[0] = ' + dashStack[0]);
+            //     dashPoints[dashPoints.length - 1].endOfDash = (dashOrGap == 1);
+            // }
+
+            // the last point must be endOfDash
+            dashPoints[dashPoints.length - 1].endOfDash = true;
 
             // advance
             segmentAdvance += dashLength;
 
             // alternate dash|gap
-            dashOrGap = toggle(dashOrGap);
+            // dashOrGap = toggle(dashOrGap);
 
         } // end dashLoop (end of segment)
 
-        if (dashOrGap == 1) {
-            // add existing path point as part of dash
-            dashPoints.push(pointStack[0]);
-        }
+        if (dashStack.length == 0)
+            continue;
+
+        // add existing path point as part of dash
+        dashPoints.push(BezPoint.convertPoint(pointStack[0]));
+        dashPoints[dashPoints.length - 1].note = 'x';
+        testConsole.push([dashPoints[dashPoints.length - 1], dashLength, segmentAdvance, segmentLength]);
 
         // shorten the dash that was interrupted
         dashStack[0] += segmentAdvance - segmentLength;
 
     } // end pointLoop
 
-    $/*debug*/.writeln('>> adding endOfDash to ' + dashPoints[dashPoints.length - 1]);
-    $/*debug*/.writeln('     | segmentAdvance = ' + segmentAdvance);
-    $/*debug*/.writeln('     | segmentLength = ' + segmentLength);
-    $/*debug*/.writeln('     | dashLength = ' + dashLength);
-    $/*debug*/.writeln('     | dashStack[0] = ' + dashStack[0]);
-    dashPoints[dashPoints.length - 1].endOfDash = true;
+    // $/*debug*/.writeln('>> adding endOfDash to ' + dashPoints[dashPoints.length - 1]);
+    // $/*debug*/.writeln('     | segmentAdvance = ' + segmentAdvance);
+    // $/*debug*/.writeln('     | segmentLength = ' + segmentLength);
+    // $/*debug*/.writeln('     | dashLength = ' + dashLength);
+    // $/*debug*/.writeln('     | dashStack[0] = ' + dashStack[0]);
+    // dashPoints[dashPoints.length - 1].endOfDash = true;
+
     segmentAdvance += lastDashLength;
 
     Explr.init(dashPoints);
 
+    for (var i = 0; i < testConsole.length; i++) {
+        var item = testConsole[i][0];
+        $/*debug*/.writeln(i + ': ' + testConsole[i].join('\t'));
+    }
+
     return dashPoints;
 
 };
+
 
 
 
@@ -4207,6 +4234,7 @@ BezPoint.prototype.toString = function bezPointToString() {
         + ', '
         + (Math.round(this.anchor[1] * 100) / 100)
         + (this.endOfDash ? ' endOfDash' : '')
+        + (this.note != undefined ? ' ' + this.note : '')
         + ']';
 
     var list = [
