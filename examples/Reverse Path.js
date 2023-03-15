@@ -13,15 +13,17 @@
     // $/*debug*/.writeln('item.pathPoints[0].anchor = '+item.pathPoints[0].anchor);
     // return;
 
-    $/*debug*/.write('before: ');
-    debugShowFirstPoint(bez)
+    // $/*debug*/.write('before: ');
+    // debugShowFirstPoint(bez)
 
-    bez.draw({ select: true });
+    // bez.draw({ select: true });
+    bez.reverse();
 
-    $/*debug*/.write('after: ');
-    debugShowFirstPoint(bez)
+    // $/*debug*/.write('after: ');
+    // debugShowFirstPoint(bez)
 
-    $/*debug*/.writeln('bez.pageItem.pathPoints[0].anchor = ' + bez.pageItem.pathPoints[0].anchor);
+    $/*debug*/.writeln('bez.pageItem.pathPoints[0].anchor = ' + bez.pageItem.pathPoints[0].anchor.join(', '));
+    // $/*debug*/.writeln('bez.pageItem.polarity = ' + bez.pageItem.polarity);
 
 
     bez.drawPathIndicators();

@@ -11,21 +11,16 @@ function Dasher(pattern) {
 
     var self = this;
 
+    // dashes smaller than this will be removed
+    self.tolerance = 0.001;
+
     if (pattern.constructor.name != 'Array')
         return;
 
-    // fix bad zeros
-    for (var i = 0; i < pattern.length; i++) {
-        if (pattern[i] == 0)
-            if (i % 2 == 1)
-                // it's okay to have a dash gap of zero,
-                // but for reasons we'll replace with tiny amount
-                pattern[i] = Number.MIN_VALUE; //XXX
-
-            else
-                // cannot have a dash length of zero
-                throw Error('Dasher: pattern cannot have zero-width dash. [' + pattern + ']');
-    }
+    // check for too-small dash lengths
+    for (var i = 0; i < pattern.length; i++)
+        if (pattern[i] < self.tolerance)
+            throw Error('Dasher failed: dash length of pattern[' + i + '] is less than minimum (' + self.tolerance + ').');
 
     if (pattern.length % 2 == 1)
         // if odd number of dash lengths, double it
@@ -63,7 +58,8 @@ Dasher.prototype.basicPatternForLength = function (len) {
     )
         return;
 
-    var pattern = this.pattern,
+    var self = this,
+        pattern = this.pattern,
         advance = 0,
         index = 0,
         result = [];
@@ -80,6 +76,10 @@ Dasher.prototype.basicPatternForLength = function (len) {
         result.push(remainder);
     else
         result[result.length - 1] += remainder;
+
+    // remove zero amounts from end
+    while (result[result.length - 1] < self.tolerance)
+        result.pop();
 
     return result;
 

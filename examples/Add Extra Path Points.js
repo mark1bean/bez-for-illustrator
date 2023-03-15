@@ -3,7 +3,7 @@
 /**
  * Add path points between points.
  * @author m1b
- * @version 2022-12-31
+ * @version 2023-01-18
  * @requires Bez.js
  */
 (function () {
@@ -12,46 +12,147 @@
         throw Error('Cannot find the required script file "Bez.js".');
 
     var doc = app.activeDocument,
-        items = itemsInsideGroupItems(doc.selection, ['PathItem', 'CompoundPathItem']);
+        item = doc.selection[0];
 
-    if (items.length == 0) {
-        alert('Please select one or more path items and try again.');
+    if (item == undefined) {
+        alert('Please select a path item and try again.');
         return;
     }
 
-    // var distance = Number(prompt('Enter the distance between added points:', 10));
-    // var distance = 20;
-    // if (
-    //     distance == 0
-    //     || isNaN(distance)
-    // )
-    //     return;
+    var bez = new Bez({ pageItem: item });
 
-    for (var i = 0; i < items.length; i++) {
+    // example1(); // Ask user to choose distance between added path points.
+    example2(); // Ask user to choose how many path points to add to each segment, apply to curved segments only.
+    // example3(); // Ask user to choose values of path points to add to each segment.
+    // example4(); // Ask user to choose lengths of path points to add to each segment.
+    // example5(); // Add points at set distance, but with easing valueFunction.
 
-        var bez = new Bez({ pageItem: items[i] });
+
+    /**
+     * Example 1:
+     * Ask user to choose distance between added path points.
+     */
+    function example1() {
+
+        var distance = Number(prompt('Enter the distance between added points:', 10));
+        if (
+            distance == 0
+            || isNaN(distance)
+        )
+            return;
+
+        bez.addExtraPointsBetweenPoints({ distance: distance });
+
+    };
+
+    /**
+     * Example 2:
+     * Ask user to choose how many path points to add to each segment, apply to curved segments only.
+     */
+    function example2() {
+
+        var numberOfPoints = Number(prompt('Enter the number of path points to add to each segment:', 3));
+
+        if (
+            numberOfPoints == 0
+            || isNaN(numberOfPoints)
+        )
+            return;
 
         bez.addExtraPointsBetweenPoints(
             {
-                distance: 1,
-                // filterFunction: Bez.isCurvedSegment
-                // numberOfPoints: 3,
-                // values: [0.1, 0.9],
-                // lengths: [1, 2, -1],
+                numberOfPoints: numberOfPoints,
+                // filterFunction: Bez.isCurvedSegment,
             }
         );
 
-    }
+    };
 
-
-    // Some example filterFunctions:
 
     /**
-     * Returns true only when the segment is sufficiently curved.
+     * Example 3:
+     * Ask user to choose values of path points to add to each segment.
+     */
+    function example3() {
+
+        var values = [],
+            userValues = (prompt('Enter position values in range -1..1, separated by commas:', '0.45, 0.5, 0.55') || '').split(/,\s*/g);
+
+        for (var i = 0; i < userValues.length; i++) {
+
+            var v = Number(userValues[i]);
+
+            if (
+                isNaN(v)
+                || v <= -1
+                || v >= 1
+            )
+                continue;
+
+            values.push(v);
+
+        }
+
+        if (values.length == 0)
+            return;
+
+        bez.addExtraPointsBetweenPoints({ values: values });
+
+    };
+
+
+    /**
+     * Example 4:
+     * Ask user to choose lengths of path points to add to each segment.
+     */
+    function example4() {
+
+        var lengths = [],
+            userValues = (prompt('Enter lengths, in pts, separated by commas:', '25, 50, -25, -50') || '').split(/,\s*/g);
+
+        for (var i = 0; i < userValues.length; i++) {
+
+            var v = Number(userValues[i]);
+
+            if (!isNaN(v))
+                lengths.push(v);
+
+        }
+
+        if (lengths.length == 0)
+            return;
+
+        bez.addExtraPointsBetweenPoints({ lengths: lengths });
+
+    };
+
+
+    /**
+     * Example 5:
+     * Add points at set distance, but with easing valueFunction.
+     */
+    function example5() {
+
+        bez.addExtraPointsBetweenPoints(
+            {
+                distance: 25,
+                valueFunction: easeInOutQuad,
+            }
+        );
+
+    };
+
+
+
+
+    /**
+     * Example custom filterFunction:
+     * Returns true only when the segment has control points
+     * longer than `curveThreshold`.
      * Note: this function returns a function closure containing
-     * the `curveThreshold` parameter. So use *call* it (with
+     * the `curveThreshold` parameter. So *call* it (with curveThreshold
      * parameter) when you are passing the filterFunction.
-     * @returns {Number}
+     * @returns {Boolean}
      */
     function onlyCurvedSegmentsLargerThan(curveThreshold) {
 
@@ -72,9 +173,9 @@
 
     /**
      * Example custom filterFunction:
-     * Returns spacing that approximates "distance" in points,
-     * but only when the line p1p2 is horizontal or vertical.
-     * @returns {Number}
+     * Returns true only when the line p1p2
+     * is perfectly horizontal or vertical.
+     * @returns {Boolean}
      */
     function onlyHorizontalOrVerticalStraightLines(p1, p2, segmentLength, distance, numberOfPoints, bounds) {
 
@@ -85,6 +186,17 @@
             && Bez.isStraightLineSegment(p1, p2)
         );
 
+    };
+
+
+    /**
+     * Example custom valueFunction.
+     * See Ease.js for more examples.
+     * @param {Number} t - number in range 0..1.
+     * @returns {Number}
+     */
+    function easeInOutQuad(t) {
+        return t < 0.5 ? 2 * t * t : - 1 + (4 - 2 * t) * t;
     };
 
 

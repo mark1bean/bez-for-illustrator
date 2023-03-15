@@ -9,6 +9,53 @@ To get all the example scripts, just download the [latest release](https://githu
 $~$
 ***
 
+## Add Extra Path Points.js
+
+Select a whole path or just part of a path and run script. Will add extra path points according to the script options.
+
+<img src="../images/add-extra-path-points-anim.gif" alt="Add Extra Path Points.js demo animation" width="450"/>
+
+
+$~$
+### Examples:
+
+(1) adds a point approximately every 25 points distance.
+
+```javascript
+bez.addExtraPointsBetweenPoints( { distance: 25 } );
+```
+
+(2) adds 3 points between every anchor point.
+
+```javascript
+bez.addExtraPointsBetweenPoints( { numberOfPoints: 3 } );
+```
+
+(3) adds points at 45%, 50% and 55% along each segment.
+
+```javascript
+bez.addExtraPointsBetweenPoints( { values: [ 0.45, 0.5, 0.55 ] } );
+```
+
+(4) adds points at 25 pts and 50pts from each end of segment.
+
+```javascript
+bez.addExtraPointsBetweenPoints( { lengths: [ 25, 50, -25, -50 ] } );
+```
+
+(5) adds a point approximately every 15 points distance, but only if the segment is curved.
+
+```javascript
+bez.addExtraPointsBetweenPoints(
+    {
+        distance: 15,
+        filterFunction: Bez.isCurvedSegment
+    } );
+```
+
+$~$
+***
+
 ## Add Path Point At Extrema.js
 
 Select a whole path or just part of a path and run script. Will add extra path points at each extreme of the curve.
@@ -51,25 +98,27 @@ Select two compatible (same number of points) path items in Illustrator and run 
 
 <img src="../images/interpolate-anim.gif" alt="Interpolate Between Paths.js demo animation" width="450"/>
 
-### Example 1: make 6 new paths, evenly-distributed
+### Examples:
+
+(1) make 6 new paths, evenly-distributed
 
 ```javascript
 var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], 6);
 ```
 
-### Example 2: make a single new path at 20% position (t == 0.2)
+(2) make a single new path at 20% position (t == 0.2)
 
 ```javascript
 var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], [0.2]);
 ```
 
-### Example 3: make 6 new paths given explicit distribution
+(3) make 6 new paths given explicit distribution
 
 ```javascript
 var newPaths = Bez.pathItemsFromInterpolation(items[0], items[1], [0.05, 0.15, 0.3, 0.7, 0.85, 0.95]);
 ```
 
-### Example 4: make 6 new paths distributed by an ease function
+(4) make 6 new paths distributed by an ease function
 
 ```javascript
 var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 6, easeOutQuad);
@@ -78,9 +127,22 @@ var items = Bez.pathItemsFromInterpolation(doc.selection[0], doc.selection[1], 6
 $~$
 ***
 
+## Match Path Items.js
+
+Select a path item and run script. Script will select any other matching path items.
+
+<img src="../images/match-path-items-anim.gif" alt="Match Path Items.js demo animation" width="450"/>
+
+Works by generating hashes from the path items that can be matched against each other. The hashes will be matchable even if the path item is moved, rotated or scaled. The matching parameters can be widened to match different path items with similar properties, eg. rectangles with differing aspect ratios.
+
+The matching system doesn't take appearance into account, only the basic path geometry.
+
+$~$
+***
+
 ## Please help with testing
 
-Please post any issues you come across.
+Post any issues you come across.
 
 $~$
 ***

@@ -4629,10 +4629,9 @@ BezPoint.prototype.rotate = function bezPointRotate(transformPoint, angle) {
 
 
 /**
- * Returns whether this point
- * is at the end of a section.
- * This method attempts to match
- * Illustrator's own method.
+ * Returns whether this point is at the end
+ * of a section, attempting to match Illustrator's
+ * "Align stroke to corners and path ends" algorithm.
  * @author m1b
  * @version 2023-03-14
  * @param {BezPoint} p - a point.
