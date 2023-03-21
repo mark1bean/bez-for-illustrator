@@ -136,6 +136,7 @@ function Bez(options) {
 
     self.paths = []; // the paths/points array [[BezPoints], [BezPoints], ... ]
     self.pathsClosed = []; // matching array [Boolean, Boolean, ...]
+    self.pathsLengths = []; // matching array [Boolean, Boolean, ...]
     self.pathItems = []; // Illustrator dom PathItems
 
     if (options.pageItem != undefined) {
@@ -177,7 +178,7 @@ function Bez(options) {
             self.pathsClosed[i] = options.pathsClosed[i];
 
     if (self.pathsClosed.length == 0)
-        throw Error('new Bez failed: no `pathClosed` supplied.');
+        throw Error('new Bez failed: no `pathsClosed` supplied.');
 
 };
 
@@ -414,7 +415,7 @@ Bez.prototype.consumePoints = function (points) {
         self.paths[i] = [];
 
         for (var j = 0; j < points[i].length; j++)
-            self.paths[i][j] = BezPoint.make(points[i][j]);
+            self.paths[i][j] = new BezPoint(points[i][j]);
 
     }
 
@@ -458,7 +459,7 @@ Bez.prototype.consumePageItem = function (pageItem) {
         self.pathsClosed[i] = self.pathItems[i].closed == true;
 
         for (var j = 0; j < self.pathItems[i].pathPoints.length; j++)
-            self.paths[i][j] = BezPoint.make(self.pathItems[i].pathPoints[j]);
+            self.paths[i][j] = new BezPoint(self.pathItems[i].pathPoints[j]);
 
     }
 
@@ -743,7 +744,7 @@ Bez.addSegmentPoints = function addSegmentPoints(options) {
     options = options || {};
 
     var paths = options.paths,
-        pathClosed = options.pathsClosed,
+        pathsClosed = options.pathsClosed,
         pointsWithExtraPoints = [],
         distance = options.distance,
         numberOfPoints = options.numberOfPoints,
@@ -755,8 +756,8 @@ Bez.addSegmentPoints = function addSegmentPoints(options) {
 
     if (
         paths == undefined
-        || pathClosed == undefined
-        || paths.length !== pathClosed.length
+        || pathsClosed == undefined
+        || paths.length !== pathsClosed.length
     )
         throw Error('Bez.addSegmentPoints failed: requires `points` and `closed` parameters with matching lengths.');
 
@@ -775,7 +776,7 @@ Bez.addSegmentPoints = function addSegmentPoints(options) {
     for (var i = 0, l = paths.length; i < l; i++) {
 
         var points = paths[i].slice(),
-            closed = pathClosed[i],
+            closed = pathsClosed[i],
             newPoints = [],
             pointsCount = points.length;
 
@@ -1050,7 +1051,7 @@ Bez.prototype.makeHash = function myMakeHash(checkHash, angleTolerance, lengthRa
         for (var j = 1; j < points.length; j++) {
 
             // add segmentLength property to the 2nd point of each segment
-            points[j].segmentLength = Bez.segmentLength(points[j - 1], points[j]);
+            points[j].segmentLength = Bez.getSegmentLength(points[j - 1], points[j]);
 
             // sum the lengths to get the total path length
             pathLength += points[j].segmentLength;
@@ -1735,13 +1736,13 @@ Bez.pointOnBezier = function pointOnBezier(q, t) {
  * @param {BezPoint|PathPoint} p2
  * @returns {Number} - segment length in points
  */
-Bez.segmentLength = function segmentLength(p1, p2) {
+Bez.getSegmentLength = function BezGetSegmentLength(p1, p2) {
 
     if (
         p1 == undefined
         || p2 == undefined
     )
-        throw Error('Bez.segmentLength failed: a point was undefined.');
+        throw Error('Bez.getSegmentLength failed: a point was undefined.');
 
     return Bez.getLength(Bez.getK(Bez.getQ(p1, p2)), 1);
 
@@ -1978,24 +1979,10 @@ Bez.splitSegment = function splitSegment(p1, p2, tValues) {
     }
 
     // adjust and add the first and last points
-    var firstPoint = new BezPoint(
-        {
-            anchor: p1.anchor,
-            leftDirection: p1.leftDirection,
-            rightDirection: scaleHandle(p1, p1.rightDirection, firstT),
-            pointType: p1.pointType,
-            pathPoint: p1.pathPoint
-        }
-    );
-    var lastPoint = new BezPoint(
-        {
-            anchor: p2.anchor,
-            leftDirection: scaleHandle(p2, p2.leftDirection, 1 - lastT),
-            rightDirection: p2.rightDirection,
-            pointType: p2.pointType,
-            pathPoint: p2.pathPoint
-        }
-    );
+    var firstPoint = new BezPoint(p1);
+    var lastPoint = new BezPoint(p2);
+    firstPoint.rightDirection = scaleHandle(p1, p1.rightDirection, firstT);
+    lastPoint.leftDirection = scaleHandle(p2, p2.leftDirection, 1 - lastT);
     splitPoints.unshift(firstPoint);
     splitPoints.push(lastPoint);
 
@@ -3466,7 +3453,7 @@ Bez.prototype.toString = function bezToString() {
     // var list = ['[Bez'];
 
     // for (var i = 0; i < this.paths.length; i++)
-    //     list.push('  ' + i + ': ' + this.paths[i] + ' ' + (this.paths[i].angle ? round(this.paths[i].angle, 6) + '\u00B0' : '') + (this.paths[i].endOfSection ? ' endOfSection' : ''));
+    //     list.push('  ' + i + ': ' + this.paths[i] + ' ' + (this.paths[i].angle ? round(this.paths[i].angle, 6) + '\u00B0' : '') + (this.paths[i].dashCorner ? ' dashCorner' : ''));
 
     // list.push(']')
     // return list.join('\n');
@@ -3476,7 +3463,7 @@ Bez.prototype.toString = function bezToString() {
 
 
 /**
- * Sets `angle` and `endOfSection` properties.
+ * Sets `angle` and `dashCorner` properties.
  * This method is used to mark any points that
  * stroke "align dashed to corners and path ends"
  * would consider "a corner". It does this by
@@ -3519,7 +3506,7 @@ Bez.prototype.markSectionDivisionsForAlignedDashes = function markSectionDivisio
         p1.angle = (getAngleABC(a, b, c));
 
         // if angle is too low, break section here
-        p1.endOfSection = Math.abs(p1.angle) < 135;
+        p1.dashCorner = Math.abs(p1.angle) < 135;
 
     }
 
@@ -3610,7 +3597,7 @@ Bez.prototype.divideByLengths = function divideByLengths(options) {
             return;
 
         // mark the last point as end of section
-        // newPoints[newPoints.length - 1].endOfSection = true;
+        // newPoints[newPoints.length - 1].dashCorner = true;
 
     }
 
@@ -3634,7 +3621,7 @@ Bez.prototype.divideByLengths = function divideByLengths(options) {
 
         paths[pathCount].push(currentPoint);
 
-        if (currentPoint.endOfDash == true) {
+        if (currentPoint.break == true) {
 
             // a path is completed
             if (
@@ -3653,8 +3640,8 @@ Bez.prototype.divideByLengths = function divideByLengths(options) {
                 // make a new path
                 paths[pathCount] = [];
                 // and repeat the current point
-                var startPoint = BezPoint.make(currentPoint);
-                startPoint.endOfDash = false;
+                var startPoint = new BezPoint(currentPoint);
+                startPoint.break = false;
                 paths[pathCount].push(startPoint);
                 // it is divided up, so it isn't closed
                 pathsClosed[pathCount] = false;
@@ -3730,124 +3717,142 @@ Bez.prototype.getSimilarityTo = function getSimilarityTo(bez, options) {
 
 
 /**
- * Returns array of BezSections by
- * dividing `points` based on the
- * result of `dividerFunction`.
+ * Calculates and adds to each point:
+ *   `angle` - angle of point B in ABC.
  * @author m1b
- * @version 2023-03-14
- * @param {Object} options
- * @param {Array<BezPoint>} options.points - the points to divide.
- * @param {Boolean} options.closed - whether the points constitute a closed path.
- * @param {Boolean} [options.alignDashes] - whether to align dashes to corners and end points (default: false).
- * @param {Function} [options.dividerFunction] - a function that returns true when a division should occur (default: no divisions).
- * @returns {Array<BezSection>}
+ * @version 2023-03-20
  */
-Bez.createSections = function createSections(options) {
+Bez.prototype.calculateAngles = function calculateAngles() {
 
-    if (options.points == undefined)
-        throw Error('Bez.createSections failed: no `points` supplied.');
+    var self = this;
 
-    if (options.closed == undefined)
-        throw Error('Bez.createSections failed: no `closed` value supplied.');
+    for (var i = 0; i < self.paths.length; i++) {
 
-    var points = options.points,
-        closed = options.closed,
-        alignDashes = options.alignDashes === true,
-        markPointFunction = options.markPointFunction || alignDashes ? BezPoint.markDashAlignmentSections : undefined;
+        var points = self.paths[i],
+            pointCount = points.length,
+            closed = self.pathsClosed[i];
 
-    if (closed == true)
-        // closed paths must point back to the first point
-        // so we'll duplicate the first point to the end
-        points.push(BezPoint.make(points[0]));
+        pointsLoop:
+        for (var j = 0; j < pointCount; j++) {
 
-    var pointCount = points.length;
+            if (
+                (j == 0 && closed != true)
+                || (j == pointCount - 1 && closed != true)
+            )
+                continue pointsLoop;
 
-    analysisLoop:
-    for (var i = 0; i < pointCount; i++) {
+            var isFirstPoint = (j == 0),
+                isLastPoint = (j == points.length - 1);
 
-        if (
-            (i == 0 && closed != true)
-            || (i == pointCount - 1 && closed != true)
-        )
-            continue;
+            // get three points to make angle
+            var p0 = isFirstPoint ? points[pointCount - 1] : points[j - 1],
+                p1 = points[j],
+                p2 = isLastPoint ? points[0] : points[j + 1];
 
-        var isFirstPoint = (i == 0),
-            isLastPoint = (i == points.length - 1);
+            var a = [p1.leftDirection[0], p1.leftDirection[1]],
+                b = [p1.anchor[0], p1.anchor[1]],
+                c = [p1.rightDirection[0], p1.rightDirection[1]];
 
-        // get three points to make angle
-        var p0 = isFirstPoint ? points[pointCount - 1] : points[i - 1],
-            p1 = points[i],
-            p2 = isLastPoint ? points[0] : points[i + 1];
+            // if straight lines, ignore direction points
+            if (pointsAreEqual(a, b))
+                a = [p0.anchor[0], p0.anchor[1]];
+            if (pointsAreEqual(b, c))
+                c = [p2.anchor[0], p2.anchor[1]];
 
-        var a = [p1.leftDirection[0], p1.leftDirection[1]],
-            b = [p1.anchor[0], p1.anchor[1]],
-            c = [p1.rightDirection[0], p1.rightDirection[1]];
-
-        // if straight lines, ignore direction points
-        if (pointsAreEqual(a, b))
-            a = [p0.anchor[0], p0.anchor[1]];
-        if (pointsAreEqual(b, c))
-            c = [p2.anchor[0], p2.anchor[1]];
-
-        // calculate angle
-        p1.angle = (getAngleABC(a, b, c));
-
-        if (markPointFunction)
-            // add special properties,
-            // such as `endOfSection`
-            markPointFunction(p1, isFirstPoint, isLastPoint);
-
-    }
-
-    var sections = [],
-        sectionPoints = [];
-
-    sectionCreationLoop:
-    for (var i = 0; i < points.length; i++) {
-
-        // add point to current section's points
-        sectionPoints.push(points[i]);
-
-        if (
-            points[i].endOfSection == true
-            || i == points.length - 1
-        ) {
-
-            // previousPoint allows the new section
-            // to calculate its first point's length
-            var previousPoint;
-
-            if (i == 0)
-                previousPoint = closed ? points[points.length - 1] : undefined;
-            else
-                previousPoint = points[i - 1]
-
-            // make the section and start a new one
-            sections.push(new BezSection(sectionPoints, previousPoint));
-
-            // reset
-            sectionPoints = [];
+            // calculate angle
+            p1.angle = (getAngleABC(a, b, c));
 
         }
 
     }
 
-    // if (alignDashes && closed && sections.length == 1) {
-    //     // if closed path, sections much start
-    //     // on an endOfSection, so if necessary
-    //     // rotate the points stack
-    //     while (sections[0].points[0].endOfSection != true)
-    //         sections[0].points.push(sections[0].points.shift());
-    // }
-
-    // if (closed == true) {
-    //     // repeat the first point
-    //     // as the end point
-    //     points.push(BezPoint.make(points[0]));
-    // }
+};
 
 
-    return sections;
+
+/**
+ * Calculates and adds to each point:
+ *   `length` - length of segment.
+ *   `pathOffset` - the distance from start of path.
+ * @author m1b
+ * @version 2023-03-20
+ */
+Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathOffset() {
+
+    var self = this,
+        paths = self.paths;
+
+    self.pathsLengths = [];
+
+    pathsLoop:
+    for (var i = 0; i < paths.length; i++) {
+
+        var points = self.paths[i],
+            closed = self.pathsClosed[i],
+            pathLength = 0,
+            p1 = points[0],
+            p2;
+
+        pointsLoop:
+        for (var j = 1; j < points.length; j++) {
+
+            p1 = points[j - 1]
+            p2 = points[j];
+
+            // calculate length of this segment
+            p1.length = Bez.getSegmentLength(p1, p2);
+            // the distance from start of path
+            p1.pathOffset = pathLength;
+            // running total of length of path
+            pathLength += p1.length;
+
+            if (j == points.length - 1)
+                // update the last point
+                p2.pathOffset = pathLength;
+
+        }
+
+        if (closed) {
+            // add the final length and pathOffset to the first point
+            p2.length = Bez.getSegmentLength(p2, points[0]);
+            pathLength += p2.length;
+            points[0].closedPathOffset = pathLength;
+        }
+
+        self.pathsLengths[i] = pathLength;
+
+    }
+
+};
+
+
+
+/**
+ * Sets a property of each point according to a given function.
+ * @author m1b
+ * @version 2023-03-20
+ * @param {Function} fn - the function to perform, given each point.
+ * @param {String} key - the property to set to result of `fn`.
+ * @returns {Number} - the count of true results of `fn`.
+ */
+Bez.prototype.markPoints = function markPoints(fn, key) {
+
+    var self = this,
+        paths = self.paths,
+        counter = 0;
+
+    for (var i = 0; i < paths.length; i++) {
+        var points = self.paths[i];
+
+        for (var j = 0; j < points.length; j++)
+            if (fn(points[j]) === true) {
+                points[j][key] = true;
+                counter++;
+            }
+
+    }
+
+    return counter;
 
 };
 
@@ -3858,23 +3863,25 @@ Bez.createSections = function createSections(options) {
  * Object representing a section
  * of a path of segments.
  * @param {Array<BezPoint>} points - the points in the section.
- * @param {Number} [previousPoint] - the point *before* the first point, used to calculate length property of first point of section (default: none).
+ * @param {BezPoint} [previousPoint] - the point *before* the first point, used to calculate length property of first point of section (default: none).
+ * @param {Number} [startDistance] - the starting position of the section, relative to the start of the path (default: 0).
  * @returns {BezSection}
  */
-function BezSection(points, previousPoint) {
+function BezSection(points, previousPoint, startDistance) {
 
     points = points || [];
     var self = this;
     self.points = [];
     self.length = 0;
+    self.startDistance = startDistance || 0;
 
     if (points.length == 1) {
         // can't really do much with a section of only one point,
         // so we start with a 'placeholder' point (the previousPoint)
         if (previousPoint != undefined) {
-            var placeholder = BezPoint.make(previousPoint);
+            var placeholder = new BezPoint(previousPoint);
             placeholder.doNotDraw = true;
-            placeholder.endOfSection = false;
+            placeholder.dashCorner = false;
             self.points.push(placeholder);
         }
         else
@@ -3883,18 +3890,23 @@ function BezSection(points, previousPoint) {
 
     // add copies of the points
     for (var i = 0; i < points.length; i++)
-        self.points.push(BezPoint.make(points[i]));
+        self.points.push(new BezPoint(points[i]));
 
     // calculate lengths
-    var p1, p2;
+    var p1, p2,
+        distance = self.startDistance;
     for (var i = 0; i < self.points.length - 1; i++) {
 
         p1 = self.points[i];
         p2 = self.points[i + 1];
         // calculate length of self segment
-        p2.length = Bez.segmentLength(p1, p2);
+        p2.length = Bez.getSegmentLength(p1, p2);
         // add to length of section
         self.length += p2.length;
+        // distance from start of path
+        p1.distance = distance;
+        distance += p2.length;
+        p2.distance = distance;
 
     }
 
@@ -3921,7 +3933,7 @@ function BezSection(points, previousPoint) {
  *
  * Notes:
  * - the section must have a `lengths` array.
- * - the returned BezPoints will have `endOfDash`
+ * - the returned BezPoints will have `break`
  *   set to true for each added point. This is
  *   for use when dividing the path later, such
  *   as in convertToDashes or dividing at lengths.
@@ -3957,8 +3969,8 @@ BezSection.prototype.addPathPointsAtLengths = function bezSectionAddPathPointsAt
     while (pointStack.length > 1) {
 
         // segment points p1 and p2
-        p1 = BezPoint.make(pointStack.shift());
-        p2 = BezPoint.make(pointStack[0]);
+        p1 = new BezPoint(pointStack.shift());
+        p2 = new BezPoint(pointStack[0]);
 
         // the length in pts of this path segment
         var segmentLength = p2.length;
@@ -3970,7 +3982,7 @@ BezSection.prototype.addPathPointsAtLengths = function bezSectionAddPathPointsAt
 
         if (dashPoints.length == 0)
             // add first point to initialise
-            dashPoints.push(BezPoint.make(p1));
+            dashPoints.push(new BezPoint(p1));
 
         // while the dash falls inside this segment
         dashLoop:
@@ -4022,12 +4034,12 @@ BezSection.prototype.addPathPointsAtLengths = function bezSectionAddPathPointsAt
             pointStack[0] = splitPoints[2];
 
             // split becomes new segment
-            p1 = BezPoint.make(dashPoints[dashPoints.length - 1]);
+            p1 = new BezPoint(dashPoints[dashPoints.length - 1]);
             p2 = pointStack[0];
 
-            // the last point must be endOfDash
-            // dashPoints[dashPoints.length - 1].endOfDash = !(!isLastPoint && alignDashes === true);
-            dashPoints[dashPoints.length - 1].endOfDash = true;
+            // the last point must be break
+            // dashPoints[dashPoints.length - 1].break = !(!isLastPoint && alignDashes === true);
+            dashPoints[dashPoints.length - 1].break = true;
 
             // advance
             segmentAdvance += currentLength;
@@ -4047,7 +4059,7 @@ BezSection.prototype.addPathPointsAtLengths = function bezSectionAddPathPointsAt
         }
 
         // add existing path point as part of dash
-        dashPoints.push(BezPoint.make(pointStack[0]));
+        dashPoints.push(new BezPoint(pointStack[0]));
 
         // /*debug*/dashPoints[dashPoints.length - 1].note = 'x';
         // /*debug*/testConsole.push([dashPoints[dashPoints.length - 1], currentLength, segmentAdvance, segmentLength]);
@@ -4059,7 +4071,7 @@ BezSection.prototype.addPathPointsAtLengths = function bezSectionAddPathPointsAt
 
     } // end segmentPointLoop
 
-    // $/*debug*/.writeln('>> adding endOfDash to ' + dashPoints[dashPoints.length - 1]);
+    // $/*debug*/.writeln('>> adding break to ' + dashPoints[dashPoints.length - 1]);
     // $/*debug*/.writeln('     | segmentAdvance = ' + segmentAdvance);
     // $/*debug*/.writeln('     | segmentLength = ' + segmentLength);
     // $/*debug*/.writeln('     | dashLength = ' + dashLength);
@@ -4090,7 +4102,7 @@ BezSection.prototype.addPathPointsAtLengths = function bezSectionAddPathPointsAt
     }
 
     if (alignDashes)
-        dashPoints[dashPoints.length - 1].endOfDash = false;
+        dashPoints[dashPoints.length - 1].break = false;
 
     Explr.init(dashPoints, 'dashPoints B');
 
@@ -4127,143 +4139,84 @@ BezSection.prototype.toString = function BezSectionToString() {
  * @constructor
  * @author m1b
  * @version 2023-03-13
- * @param {Object} options
+ * @param {Object} p
  * @param {Array} options.anchor - anchor point [x, y]
  * @param {Array} [options.leftDirection] - left control point [x, y] (default: same as anchor).
  * @param {Array} [options.rightDirection] - right control point [x, y] (default: same as anchor).
  * @param {PointType} [options.pointType] - smooth or corner (default: corner).
  * @param {PathPoint} [options.pathPoint] - a PathPoint
  */
-function BezPoint(options) {
+function BezPoint(p) {
 
-    options = options || {};
+    p = p || {};
 
     var self = this;
 
     // if options is array of numbers
-    if (options.constructor.name == 'Array') {
+    if (p.constructor.name == 'Array') {
 
-        if (options.length >= 2) {
-            self.anchor = options.slice(0, 2);
+        if (p.length >= 2) {
+            self.anchor = p.slice(0, 2);
         }
-        if (options.length >= 4) {
-            self.leftDirection = options.slice(2, 2);
+        if (p.length >= 4) {
+            self.leftDirection = p.slice(2, 2);
         }
-        if (options.length >= 6) {
-            self.rightDirection = options.slice(4, 2);
+        if (p.length >= 6) {
+            self.rightDirection = p.slice(4, 2);
         }
 
     }
 
     // if options is a PathPoint
-    else if (options.constructor.name == 'PathPoint') {
+    else if (p.constructor.name == 'PathPoint') {
 
-        self.anchor = options.anchor;
-        self.leftDirection = options.leftDirection;
-        self.rightDirection = options.rightDirection;
-        self.pointType = options.pointType;
-        self.pathPoint = options;
+        self.anchor = [p.anchor[0], p.anchor[1]];
+        self.leftDirection = [p.leftDirection[0], p.leftDirection[1]];
+        self.rightDirection = [p.rightDirection[0], p.rightDirection[1]];
+        self.pointType = p.pointType;
+        self.pathPoint = p;
 
     }
 
-    // if options has an 'anchor', eg. a BezPoint
-    // we'll add all its properties
-    else if (options.hasOwnProperty('anchor')) {
+    // if it has an anchor, we'll eat it whole
+    else if (p.hasOwnProperty('anchor')) {
 
-        // add all the properties, eg. length, angle ,endOfDash, etc.
-        for (var key in options)
-            if (options.hasOwnProperty(key))
-                self[key] = options[key];
+        // add all the properties, eg. length, angle, break, etc.
+        for (var key in p)
+            if (p.hasOwnProperty(key)) {
+                if (
+                    self[key] != undefined
+                    && self[key].constructor.name == 'Array'
+                )
+                    // de-reference arrays
+                    self[key] = p[key].slice();
+                else
+                    self[key] = p[key];
+            }
 
         if (self.pathPoint != undefined) {
-            self.anchor = self.anchor || options.pathPoint.anchor;
-            self.leftDirection = self.leftDirection || options.pathPoint.leftDirection;
-            self.rightDirection = self.rightDirection || options.pathPoint.rightDirection;
-            self.pointType = self.pointType || options.pathPoint.pointType;
-        }
-
-    }
-
-    if (self.anchor == undefined)
-        throw Error('BezPoint failed: no anchor supplied.');
-
-    // adjust for sanity
-    self.leftDirection = self.leftDirection || self.anchor;
-    self.rightDirection = self.rightDirection || self.anchor;
-    self.pointType = self.pointType || PointType.CORNER;
-
-};
-
-
-
-/**
- * Returns a new BezPoint given either a PathPoint,
- * BezPoint, or 4-element or 2-element Array.
- * @author m1b
- * @version 2023-03-17
- * @param {PathPoint|BezPoint|Array} p - PathPoint, BezPoint, [anchor[x, y], leftDir[x, y], rightDir[x, y], pointTypeEnum] or [x, y].
- * @returns {BezPoint}
- */
-BezPoint.make = function bezPointMake(p) {
-
-    if (p == undefined)
-        return;
-
-    if (p.constructor.name == 'PathPoint') {
-        return new BezPoint(
-            {
-                anchor: [p.anchor[0], p.anchor[1]],
-                leftDirection: [p.leftDirection[0], p.leftDirection[1]],
-                rightDirection: [p.rightDirection[0], p.rightDirection[1]],
-                pointType: p.pointType,
-                pathPoint: p,
-            }
-        );
-    }
-
-    else if (p.constructor.name == 'BezPoint') {
-        return new BezPoint(
-            {
-                anchor: [p.anchor[0], p.anchor[1]],
-                leftDirection: [p.leftDirection[0], p.leftDirection[1]],
-                rightDirection: [p.rightDirection[0], p.rightDirection[1]],
-                pointType: p.pointType,
-                pathPoint: p.pathPoint,
-                noBreak: p.noBreak,
-                note: p.note,
-                length: p.length,
-                endOfDash: p.endOfDash,
-                endOfSection: p.endOfSection,
-                angle: p.angle,
-            }
-        );
-    }
-
-    else if (p.constructor.name == 'Array') {
-
-        if (
-            p.length == 4
-            && p[0].constructor.name == 'Array'
-            && p[0].length == 2
-        ) {
-            return new BezPoint(
-                {
-                    anchor: [p[0][0], p[0][1]],
-                    leftDirection: [p[1][0], p[1][1]],
-                    rightDirection: [p[2][0], p[2][1]],
-                    pointType: p[3]
-                }
-            );
-        }
-
-        else if (p.length == 2) {
-            return new BezPoint({ anchor: [p[0], p[1]] });
+            // get missing values from PathPoint
+            if (self.anchor == undefined)
+                self.anchor = [p.pathPoint.anchor[0], p.pathPoint.anchor[1]];
+            if (self.leftDirection == undefined)
+                self.leftDirection = [p.pathPoint.leftDirection[0], p.pathPoint.leftDirection[1]];
+            if (self.rightDirection == undefined)
+                self.rightDirection = [p.pathPoint.rightDirection[0], p.pathPoint.rightDirection[1]];
+            self.pointType = self.pointType || p.pathPoint.pointType;
         }
 
     }
 
     else
-        throw Error('new BezPoint failed: bad parameter (' + p + ').');
+        throw Error('BezPoint failed: bad parameter (' + p + ').');
+
+    if (self.anchor == undefined)
+        throw Error('BezPoint failed: no anchor supplied.');
+
+    // for sanity
+    self.leftDirection = self.leftDirection || self.anchor;
+    self.rightDirection = self.rightDirection || self.anchor;
+    self.pointType = self.pointType || PointType.CORNER;
 
 };
 
@@ -4280,8 +4233,10 @@ BezPoint.prototype.toString = function bezPointToString() {
         + (Math.round(this.anchor[0] * 100) / 100)
         + ', '
         + (Math.round(this.anchor[1] * 100) / 100)
-        + (this.endOfDash ? ' endOfDash' : '')
-        + (this.endOfSection ? ' endOfsection' : '')
+        + (this.break ? ' break' : '')
+        + (this.dashCorner ? ' dashCorner' : '')
+        + (this.closing ? ' closing' : '')
+
         + (this.noBreak ? ' noBreak' : '')
         + (this.doNotDraw ? ' doNotDraw' : '')
         + (this.note != undefined ? ' ' + this.note : '')
@@ -4302,8 +4257,8 @@ BezPoint.prototype.toString = function bezPointToString() {
     //     list.splice(2, 1);
 
     // list = list.join(' ')
-    //     + (this.endOfDash ? ' endOfDash' : '')
-    //     + (this.endOfSection ? ' endOfSection' : '')
+    //     + (this.break ? ' break' : '')
+    //     + (this.dashCorner ? ' dashCorner' : '')
     //     + ']';
 
     // return list;
@@ -4546,20 +4501,16 @@ BezPoint.prototype.rotate = function bezPointRotate(transformPoint, angle) {
 
 
 /**
- * Sets the point's flags, attempting to match Illustrator's
+ * Returns true when a stroke dash section should be
+ * reset at this point, attempting to match Illustrator's
  * "Align stroke to corners and path ends" algorithm.
  * @author m1b
  * @version 2023-03-14
  * @param {BezPoint} p - a point.
- * @param {Boolean} [isFirstPoint] - whether the point the first.
- * @param {Boolean} [isLastPoint] - whether the point the last.
  */
-BezPoint.markDashAlignmentSections = function bezPointMarkDashAlignmentSections(p, isFirstPoint, isLastPoint) {
+BezPoint.alignStrokeDashHere = function bezPointAlignStrokeDashHere(p) {
     // if angle is too low, break section here
-    if (Math.abs(p.angle) < 135) {
-        p.endOfSection = true;
-        p.noBreak = true;
-    }
+    return (Math.abs(p.angle) < 135);
 };
 
 
