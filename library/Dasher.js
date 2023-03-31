@@ -48,9 +48,10 @@ function Dasher(pattern) {
  * @version 2022-05-23
  *
  * @param {Number} len - a length in points
+ * @param {Boolean} [omitFinalLength] - whether to omit the final dash length (default: false).
  * @returns {Array} array of dash-gap lengths
  */
-Dasher.prototype.basicPatternForLength = function (len) {
+Dasher.prototype.basicPatternForLength = function (len, omitFinalLength) {
 
     if (
         len == undefined
@@ -81,6 +82,10 @@ Dasher.prototype.basicPatternForLength = function (len) {
     while (result[result.length - 1] < self.tolerance)
         result.pop();
 
+    if (omitFinalLength)
+        // the final length isn't needed for many purposes
+        result.pop();
+
     return result;
 
 };
@@ -96,10 +101,11 @@ Dasher.prototype.basicPatternForLength = function (len) {
  * lengths to fit".
  *
  * @param {Number} len - a length in points
- * @param {Boolean} dontSplitFirstDash - whether to split first dash between last
+ * @param {Boolean} [dontSplitFirstDash] - whether to split first dash between last (default: false).
+ * @param {Boolean} [omitFinalLength] - whether to omit the final dash length (default: false).
  * @returns {Array} array of dash-gap lengths
  */
-Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash) {
+Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash, omitFinalLength) {
 
     if (
         len == undefined
@@ -112,7 +118,7 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash) {
         patternLength = pattern.length,
 
         // length of first dash
-        firstLength = dontSplitFirstDash ? 0 : pattern[0],
+        firstLength = dontSplitFirstDash === true ? 0 : pattern[0],
 
         // start and end are half the first dash
         // unless dontSplitStartDash is true
@@ -179,6 +185,10 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash) {
         }
 
     }
+
+    if (omitFinalLength)
+        // the final length isn't needed for many purposes
+        result.pop();
 
     return result;
 
