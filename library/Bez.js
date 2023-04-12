@@ -128,6 +128,7 @@ function Bez(options) {
 
     var self = this;
 
+    self.pageItem = options.pageItem;
     self.doc = options.doc;
     self.absoluteRotationAngle = options.absoluteRotationAngle || 0;
     self.rotationOffsetFromDatum = options.rotationOffsetFromDatum || 0;
@@ -139,15 +140,15 @@ function Bez(options) {
     self.pathsLengths = []; // matching array [Boolean, Boolean, ...]
     self.pathItems = []; // Illustrator dom PathItems
 
-    if (options.pageItem != undefined) {
+    if (self.pageItem != undefined) {
 
         self.doc = self.doc || getParentDocument(self.pageItem);
 
-        if (options.pageItem.parent.typename == 'CompoundPathItem')
+        if (self.pageItem.parent.typename == 'CompoundPathItem')
             // handle case where compoundPathItem is partially selected
-            options.pageItem = options.pageItem.parent;
+            self.pageItem = self.pageItem.parent;
 
-        self.consumePageItem(options.pageItem);
+        self.consumePageItem(self.pageItem);
 
     }
 
@@ -449,8 +450,11 @@ Bez.prototype.consumePageItem = function (pageItem) {
     else if (pageItem.hasOwnProperty('pathPoints'))
         self.pathItems = [pageItem];
 
+    else if (pageItem.constructor.name == 'Array')
+        throw Error('Bez.prototype.consumePageItem: expected PathItem, but received Array.');
+
     if (self.pathItems.length == 0)
-        throw Error('Bez.prototype.consumePageItem: no pathItems.')
+        throw Error('Bez.prototype.consumePageItem: no pathItems.');
 
     // store points
     for (var i = 0; i < self.pathItems.length; i++) {
@@ -1108,8 +1112,10 @@ Bez.prototype.makeHash = function myMakeHash(checkHash, angleTolerance, lengthRa
  */
 Bez.prototype.drawPathIndicators = function (options) {
 
+    options = options || {};
+
     var self = this,
-        size = 2,
+        size = options.size || 2,
 
         pink = getPink(),
         cyan = getCyan(),
@@ -1121,6 +1127,7 @@ Bez.prototype.drawPathIndicators = function (options) {
             strokeColor: pink,
             strokeDashes: [],
         },
+
         secondPointAppearance = {
             filled: false,
             stroked: true,
@@ -1137,7 +1144,7 @@ Bez.prototype.drawPathIndicators = function (options) {
         // draw a circle at the first point
         Bez.drawCircle(self.doc, p1.anchor, size, firstPointAppearance);
 
-        // draw a cyan circle at the second point
+        // draw a square at the second point
         Bez.drawSquare(self.doc, p2.anchor, size * 2, secondPointAppearance);
 
     }
@@ -1357,18 +1364,18 @@ Bez.prototype.reverse = function reverse(options) {
             pointsCount = points.length,
             newPoints = [];
 
-        $/*debug*/.writeln(points[0].anchor.join(', '));
+        // $/*debug*/.writeln(points[0].anchor.join(', '));
 
         points.reverse();
 
-        $/*debug*/.writeln(points[0].anchor.join(', '));
+        // $/*debug*/.writeln(points[0].anchor.join(', '));
 
         if (closed)
             // we still want the path to
             // start on the same point
             points.unshift(points.pop());
 
-        $/*debug*/.writeln(points[0].anchor.join(', '));
+        // $/*debug*/.writeln(points[0].anchor.join(', '));
 
         pointsLoop:
         for (var j = 0; j < pointsCount; j++) {
@@ -2257,8 +2264,8 @@ Bez.draw = function bezDraw(options) {
             // we only need to do this for the first path item
             applyProperties(item, doc, options.properties);
 
-        if (drawAsCompoundPathItem == false)
-            drawnItems.push(item);
+        // if (drawAsCompoundPathItem == false)
+        drawnItems.push(item);
 
     }
 
@@ -3655,8 +3662,12 @@ Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathO
             // add the final length and pathOffset to the first point
             p2.length = Bez.getSegmentLength(p2, points[0]);
             pathLength += p2.length;
-            points[0].closedPathOffset = pathLength;
+            points[0].pathLength = pathLength;
         }
+
+        else
+            points[0].pathLength = pathLength;
+
 
         self.pathsLengths[i] = pathLength;
 
@@ -3830,10 +3841,10 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
             else if (i == points.length - 1) {
 
                 // dashes are not aligned
-                // Explr.init(points, 'look for sectionLength')
+                // XXX Explr.init(points, 'look for sectionLength')
                 // get dash lengths for the whole path
                 // this method conserves actual dash|gap lengths
-                var sectionLength = closed ? startPoint.closedPathOffset : currentPoint.pathOffset;
+                var sectionLength = closed ? startPoint.pathLength : currentPoint.pathOffset;
                 startPoint.cutLengths = dasher.basicPatternForLength(sectionLength);
 
             }
@@ -3853,8 +3864,8 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
     }
 
     var lastDashIsGap = startPoint.cutLengths.length % 2 == 0;
-    $/*debug*/.writeln('startPoint.cutLengths.length = ' + startPoint.cutLengths.length);
-    $/*debug*/.writeln('lastDashIsGap = ' + lastDashIsGap);
+    // $/*debug*/.writeln('startPoint.cutLengths.length = ' + startPoint.cutLengths.length);
+    // $/*debug*/.writeln('lastDashIsGap = ' + lastDashIsGap);
 
     /*
         Expand all cutLengths arrays into actual BezPoints
@@ -4151,8 +4162,6 @@ Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLe
  */
 Bez.cutIntoPaths = function bezCutIntoPaths(points, filterFunction) {
 
-    // Explr.init(points, 'before cutIntoPaths');
-
     // filterFunction = filterFunction || function () { return true };
 
     // if (filterFunction.constructor.name !== 'Function')
@@ -4211,6 +4220,70 @@ Bez.cutIntoPaths = function bezCutIntoPaths(points, filterFunction) {
 
 };
 
+
+
+/**
+ * Returns paths/closed such that each segment
+ * of each path is converted into a path.
+ * So a path with 5 segments will be returned
+ * as a 5 paths, each having a single segment.
+ * @author m1b
+ * @version 2023-04-12
+ * @param {Array<Array<BezPoint>>} paths - a bez-style paths array.
+ * @param {Array<Boolean>} closed - a bez-style closed array.
+ * @returns {Object} - {paths: closed:}
+ */
+Bez.convertSegmentsToPaths = function bezConvertSegmentsToPaths(paths, closed) {
+
+    var newPaths = [];
+
+    for (var i = 0; i < paths.length; i++) {
+
+        var points = paths[i].slice(),
+            closed = closed[i],
+            closingPoint;
+
+        if (closed) {
+            // add a closing point
+            closingPoint = new BezPoint(points[0]);
+            points.push(closingPoint);
+        }
+
+        // break at every point
+        for (var j = 1; j < points.length; j++)
+            points[j].break = true;
+
+        // arrange so that the path is cut into individual paths
+        var cutPaths = Bez.cutIntoPaths(points);
+
+        newPaths = newPaths.concat(cutPaths.paths);
+
+    }
+
+    return { paths: newPaths, pathsClosed: false };
+
+};
+
+
+
+/**
+ * Converts the Bez's paths such that each original
+ * segment of each original path is converted into
+ * a path. So, a path with 5 segments will be converted
+ * into 5 paths, each having a single segment.
+ * @author m1b
+ * @version 2023-04-12
+ */
+Bez.prototype.convertSegmentsToPaths = function convertSegmentsToPaths() {
+
+    var self = this,
+        converted = Bez.convertSegmentsToPaths(self.paths, self.pathsClosed);
+
+    self.paths = converted.paths;
+    self.pathsClosed = converted.pathsClosed;
+    self.dirty = true;
+
+};
 
 
 
