@@ -488,6 +488,62 @@ Bez.prototype.centroid = function myCentroid(flatness, polygon) {
 
 
 
+/**
+ * Returns true with point `p` intersects with the Bez.
+ * @author m1b and chatGPT
+ * @version 2023-06-12
+ * @param {Array<Number>} p - a point [x, y].
+ * @param {Number} flatness - length of line segments in pts when approximating curves (default: 2).
+ * @returns {Boolean}
+ */
+Bez.prototype.intersectsWithPoint = function intersectsWithPoint(p, flatness) {
+
+    var self = this,
+        x = p[0],
+        y = p[1],
+        doesIntersect = false;
+
+    // note getPolygon() returns an array of
+    // polygons (one for each path in bez)
+    self.polygons = self.polygons || self.getPolygon(flatness || 2);
+
+    polygonsLoop:
+    for (var k = 0; k < self.polygons.length; k++) {
+
+        var polygon = self.polygons[k],
+            inside = false;
+
+        for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+
+            var xi = polygon[i][0],
+                yi = polygon[i][1],
+                xj = polygon[j][0],
+                yj = polygon[j][1],
+
+                intersect = (
+                    ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+                );
+
+            if (intersect)
+                inside = !inside;
+
+        }
+
+        if (inside) {
+            doesIntersect = true;
+            break polygonsLoop;
+        }
+
+    }
+
+    return inside;
+
+};
+
+
+
+
+
 
 /**
  * Create pathItems by interpolating between 2 pathItems.
@@ -677,14 +733,14 @@ Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
 
     options = options || {};
 
-    var self = this,
-        isSelected = self.pageItem && self.pageItem.selected == true;
+    var self = this;
 
     options.paths = self.paths.slice();
     options.pathsClosed = self.pathsClosed;
 
     self.paths = Bez.addSegmentPoints(options);
-    self.draw({ select: isSelected });
+
+    self.draw();
 
 };
 
@@ -743,7 +799,7 @@ Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
  * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
  */
-Bez.addSegmentPoints = function addSegmentPoints(options) {
+Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
 
     options = options || {};
 
@@ -790,6 +846,8 @@ Bez.addSegmentPoints = function addSegmentPoints(options) {
         pointsLoop:
         for (var j = 0; j < pointsCount; j++) {
 
+            // $/*debug*/.writeln('>> j = ' + j);
+
             var closeMeNow = closed && j == pointsCount - 1,
                 index1 = j,
                 index2 = closeMeNow ? 0 : j + 1,
@@ -801,7 +859,6 @@ Bez.addSegmentPoints = function addSegmentPoints(options) {
                 newPoints.push(p1);
                 break pointsLoop;
             }
-
 
             if (
                 selectedSegmentsOnly
@@ -827,6 +884,7 @@ Bez.addSegmentPoints = function addSegmentPoints(options) {
             options.p2 = p2;
 
             var tValues = Bez.getTValues(options);
+            // $/*debug*/.writeln('tValues = ' + tValues);
 
             if (
                 tValues == undefined
@@ -1774,7 +1832,7 @@ Bez.getSegmentLength = function BezGetSegmentLength(p1, p2) {
  * @param {Array<Number>} [options.bounds] - bounds for special use in spacing function (default: undefined).
  * @returns {Array<Number>} - the tValues.
  */
-Bez.getTValues = function getTValues(options) {
+Bez.getTValues = function bezGetTValues(options) {
 
     options = options || {};
 
@@ -2155,7 +2213,7 @@ Bez.prototype.draw = function draw(options) {
     if (oldPageItem != undefined)
         oldPageItem.remove();
 
-    if (options.select)
+    if (options.select === true)
         self.select();
 
 };
@@ -3447,70 +3505,9 @@ Bez.prototype.deselect = function deselect() {
  */
 Bez.prototype.toString = function bezToString() {
 
-    return '[Bez A:' + this.paths[0][0].anchor + ']';
-
-    // var list = ['[Bez'];
-
-    // for (var i = 0; i < this.paths.length; i++)
-    //     list.push('  ' + i + ': ' + this.paths[i] + ' ' + (this.paths[i].angle ? round(this.paths[i].angle, 6) + '\u00B0' : '') + (this.paths[i].dashCorner ? ' dashCorner' : ''));
-
-    // list.push(']')
-    // return list.join('\n');
+    return '[Bez: ' + this.paths.length + ' paths]';
 
 };
-
-
-
-/**
- * Sets `angle` and `dashCorner` properties.
- * This method is used to mark any points that
- * stroke "align dashed to corners and path ends"
- * would consider "a corner". It does this by
- * calculating the angle of each point.
- * @author m1b
- * @version 2023-03-14
- * @param {Number} pathIndex - the index to the Bez's paths array.
- */
-Bez.prototype.markSectionDivisionsForAlignedDashes = function markSectionDivisions(pathIndex) {
-    alert('this is probably deprecated');
-    var self = this;
-
-    var points = self.paths[pathIndex],
-        closed = self.pathsClosed[pathIndex],
-        pointCount = points.length;
-
-    for (var j = 0; j < pointCount; j++) {
-        if (
-            (j == 0 && closed != true)
-            || (j == pointCount - 1 && closed != true)
-        )
-            continue;
-
-        // get three points to make angle
-        var p0 = j == 0 ? points[pointCount - 1] : points[j - 1],
-            p1 = points[j],
-            p2 = j == pointCount - 1 ? points[0] : points[j + 1];
-
-        var a = [p1.leftDirection[0], p1.leftDirection[1]],
-            b = [p1.anchor[0], p1.anchor[1]],
-            c = [p1.rightDirection[0], p1.rightDirection[1]];
-
-        // if straight lines, ignore direction points
-        if (pointsAreEqual(a, b))
-            a = [p0.anchor[0], p0.anchor[1]];
-        if (pointsAreEqual(b, c))
-            c = [p2.anchor[0], p2.anchor[1]];
-
-        // calculate angle
-        p1.angle = (getAngleABC(a, b, c));
-
-        // if angle is too low, break section here
-        p1.dashCorner = Math.abs(p1.angle) < 135;
-
-    }
-
-};
-
 
 
 
@@ -3652,9 +3649,13 @@ Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathO
             // running total of length of path
             pathLength += p1.length;
 
-            if (j == points.length - 1)
+            if (j == points.length - 1) {
+
                 // update the last point
                 p2.pathOffset = pathLength;
+                p2.sectionEnd = true;
+
+            }
 
         }
 
@@ -3751,7 +3752,7 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
     if (alignDashes) {
 
         /*
-            Prepare points: add `dashCorner` property
+            Prepare points: add `sectionEnd` property
             to match Illustrator's dash alignment method
             and add `sectionLength` property, which
             is the length between dash corners.
@@ -3770,10 +3771,10 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
             var currentPoint = points[i];
 
             if (
-                BezPoint.alignStrokeDashHere(currentPoint)
+                BezPoint.checkForDashCornerPoint(currentPoint)
                 || (closed == false && i == 0)
             ) {
-                currentPoint.dashCorner = true;
+                currentPoint.sectionEnd = true;
                 currentPoint.sectionLength = sectionLength - currentPoint.pathOffset;
                 dashCornerCount++;
                 sectionLength = currentPoint.pathOffset;
@@ -3795,7 +3796,7 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
     /*
         Calculate all dash lengths and add them
         to `cutLengths` property of each point where
-        dashCorner == true.
+        sectionEnd == true.
     */
     var /*points = bez.paths[pathIndex],*/
         startPoint = points[0],
@@ -3828,7 +3829,7 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
 
                 // dashes are aligned
 
-                if (currentPoint.dashCorner == true) {
+                if (currentPoint.sectionEnd == true) {
                     // get dash lengths for the length between dash corners
                     // this method aligns dashes with corners and scales
                     // dash|gaps to fit the section between corners
@@ -3973,10 +3974,11 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
  * @param {Number} [tolerance] - how close an expanded point can be to an existing point (default: 0.01 pt).
  * @returns {Array<BezPoint>} - the expanded points.
  */
-Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLength, tolerance) {
+Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLength, tolerance, addPointsButDontCut) {
 
     tolerance = tolerance || 0.01;
     ignoreLastLength = ignoreLastLength === true;
+    addPointsButDontCut = addPointsButDontCut === true;
 
     /*
         Distribute cutLengths to the correct segment
@@ -4061,7 +4063,8 @@ Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLe
                 if (remainder < tolerance) {
                     // too close to the next point
                     remainder = 0;
-                    nextPoint.break = true;
+                    if (!addPointsButDontCut)
+                        nextPoint.break = true;
                     break addSegmentOffsets;
                 }
 
@@ -4387,34 +4390,11 @@ BezPoint.prototype.toString = function bezPointToString() {
         + ', '
         + (Math.round(this.anchor[1] * 100) / 100)
         + (this.break ? ' break' : '')
-        + (this.dashCorner ? ' dashCorner' : '')
+        + (this.sectionEnd ? ' sectionEnd' : '')
         + (this.closing ? ' closing' : '')
-
         + (this.noBreak ? ' noBreak' : '')
-        + (this.doNotDraw ? ' doNotDraw' : '')
         + (this.note != undefined ? ' ' + this.note : '')
         + ']';
-
-    // var list = [
-    //     '[BezPoint',
-    //     'A:' + round(this.anchor),
-    //     'L:' + round(this.leftDirection),
-    //     'R:' + round(this.rightDirection),
-    //     this.pointType
-    // ];
-
-    // if (!this.hasRightDirection())
-    //     list.splice(3, 1);
-
-    // if (!this.hasLeftDirection())
-    //     list.splice(2, 1);
-
-    // list = list.join(' ')
-    //     + (this.break ? ' break' : '')
-    //     + (this.dashCorner ? ' dashCorner' : '')
-    //     + ']';
-
-    // return list;
 
 };
 
@@ -4569,7 +4549,6 @@ BezPoint.prototype.scale = function bezPointScale(transformPoint, scaleFactor) {
 
 
 
-
 /**
  * Returns a new BezPoint that is translated.
  * @author m1b
@@ -4661,7 +4640,7 @@ BezPoint.prototype.rotate = function bezPointRotate(transformPoint, angle) {
  * @version 2023-03-14
  * @param {BezPoint} p - a point.
  */
-BezPoint.alignStrokeDashHere = function bezPointAlignStrokeDashHere(p) {
+BezPoint.checkForDashCornerPoint = function bezPointAlignStrokeDashHere(p) {
     // if angle is too low, break section here
     return (Math.abs(p.angle) < 135);
 };
