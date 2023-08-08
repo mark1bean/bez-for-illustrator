@@ -1,7 +1,7 @@
 //@include '../library/Bez.js'
 
 /**
- * Convert Selected Paths to Polygons
+ * Make interpolated path items.
  * @author m1b
  * @version 2022-12-23
  * @requires Bez.js
