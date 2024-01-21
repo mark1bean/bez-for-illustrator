@@ -1,95 +1,125 @@
-//@include '/Users/mark/Scripting/Indesign/Lib/Explr.js'
-
-
 /**
  * The types of scaling.
- * @enum DO_NOT_SCALE - no scaling.
- * @enum FIT_BOX - scale so that min dimension matches bounding box's max dimension, centered.
- * @enum FILL_BOX - scale to fill bounding box, centered.
- * @enum STRETCH - fill the bounding box exactly, no matter what proportion difference.
+ * @memberof Bez
+ * @enum {String}
  */
 var BezScaleType = {
+
+    /** No scaling. */
     DO_NOT_SCALE: 'do_not_scale',
+
+    /** Scale by the scale factor. */
     SCALE_BY_FACTOR: 'scale_by_factor',
+
+    /** Scale so that min dimension matches bounding box's max dimension, centered. */
     FIT_BOX: 'fit_box',
+
+    /** Scale to fill bounding box, centered. */
     FILL_BOX: 'fill_box',
-    STRETCH: 'stretch'
+
+    /** Fill the bounding box exactly, no matter what proportion difference. */
+    STRETCH: 'stretch',
+
 };
 
 
 /**
  * The types of rotations.
- * @enum FROM_CURRENT_ROTATION - normal relative rotation.
- * @enum FROM_DATUM - rotate relative to bez's rotational datum, if any.
- * @enum FROM_REVERSE_DATUM - rotate relative to bez's rotational datum, if any.
+ * @memberof Bez
+ * @enum {String}
  */
 var BezRotationType = {
+
+    /** Normal relative rotation. */
     NORMAL: 'normal',
-    FROM_DATUM: 'from_datum'
+
+    /** Rotate relative to bez's rotational datum, if any. */
+    FROM_DATUM: 'from_datum',
+
 };
 
 
 /**
  * The transform center types, ie.
  * the fulcrum of the transform.
- * @enum TOP_LEFT - transform around top left of bounding box.
- * @enum TOP_RIGHT - transform around top right of bounding box.
- * @enum BOTTOM_RIGHT - transform around bottom right of bounding box.
- * @enum BOTTOM_LEFT - transform around bottom left of bounding box.
- * @enum CENTER - transform around center of bounding box.
- * @enum TOP - transform around top of bounding box.
- * @enum RIGHT - transform around right of bounding box.
- * @enum BOTTOM - transform around bottom of bounding box.
- * @enum LEFT - transform around left of bounding box.
- * @enum PATH_POINT - transform around a path point.
- * @enum POINT - transform around an arbitrary point.
+ * @memberof Bez
+ * @enum {String}
  */
 var BezTransformPositionType = {
-    TOP_LEFT: 'top_left',
-    TOP_RIGHT: 'top_right',
-    BOTTOM_RIGHT: 'bottom_right',
-    BOTTOM_LEFT: 'bottom_left',
-    CENTER: 'center',
-    TOP: 'top',
-    RIGHT: 'right',
-    BOTTOM: 'bottom',
-    LEFT: 'left',
-    POINT: 'point',
-};
 
+    /** Transform around top left of bounding box. */
+    TOP_LEFT: 'top_left',
+
+    /** Transform around top right of bounding box. */
+    TOP_RIGHT: 'top_right',
+
+    /** Transform around bottom right of bounding box. */
+    BOTTOM_RIGHT: 'bottom_right',
+
+    /** Transform around bottom left of bounding box. */
+    BOTTOM_LEFT: 'bottom_left',
+
+    /** Transform around center of bounding box. */
+    CENTER: 'center',
+
+    /** Transform around top of bounding box. */
+    TOP: 'top',
+
+    /** Transform around right of bounding box. */
+    RIGHT: 'right',
+
+    /** Transform around bottom of bounding box. */
+    BOTTOM: 'bottom',
+
+    /** Transform around left of bounding box. */
+    LEFT: 'left',
+
+    /** Transform around a path point. */
+    PATH_POINT: 'path_point',
+
+    /** Transform around an arbitrary point. */
+    POINT: 'point',
+
+};
 
 
 /**
  * The types of sorting.
- * @enum SORT_X - sort by x coordinate.
- * @enum SORT_Y - sort by y coordinate.
- */
+ * @memberof Bez
+ * @enum {String}
+*/
 var BezSortType = {
+
+    /** Sort by x coordinate. */
     SORT_X: 'sort_x',
+
+    /** Sort by y coordinate. */
     SORT_Y: 'sort_y'
+
 };
 
 
 /**
  * The types of hash comparison.
- * @enum NORMAL - compare the entire hash.
- * @enum ANGLES_ONLY - compare only angle values of hash.
- * @enum LENGTHS_ONLY - compare only length ratio values of hash.
+ * @memberof Bez
+ * @enum {String}
  */
 var BezHashComparisonType = {
+
+    /** Compare the entire hash. */
     NORMAL: 'normal',
+
+    /** Compare only angle values of hash. */
     ANGLES_ONLY: 'angles_only',
-    LENGTHS_ONLY: 'lengths_only'
+
+    /** Compare only length ratio values of hash. */
+    LENGTHS_ONLY: 'lengths_only',
+
 };
 
 
-
-
-
 /**
- * A general purpose path-manipulation helper object.
- * @author m1b
- * @version 2022-12-22
+ * BEZ - A general purpose path-manipulation helper object.
  *
  * Acknowledgements:
  * I have gratefully used the bezier maths code by Hiroyuki Sato:
@@ -106,15 +136,18 @@ var BezHashComparisonType = {
  * depending on whether you are creating (draw) or editing
  * (redraw) an item.
  *
- * @example - make Bez from a pathItem or compoundPathItem
+ * Example 1. Make Bez from a pathItem or compoundPathItem
  *   var bez = new Bez({ pageItem: item });
  *
- * @example - make Bez from array of "paths" which are arrays of points
+ * Example 2. Make Bez from array of "paths" which are arrays of points
  *   var bez = new Bez({ paths: myPathsArray });
  *   // nothing is added to the document until you draw it:
  *   bez.draw();
  *   bez.select();
  *
+ * @author m1b
+ * @version 2022-12-22
+ * @constructor
  * @param {Object} options
  * @param {PathItem} [options.pageItem] - an Illustrator PathItem.
  * @param {Array<Array<BezPoint>>} [options.paths] - the paths/points array.
@@ -122,6 +155,7 @@ var BezHashComparisonType = {
  * @param {Object} [options.appearance] - the current absolute rotation value of the bez (default: 0).
  * @param {Number} [options.absoluteRotationAngle] - the current absolute rotation value of the bez (default: 0).
  * @param {Number} [options.rotationOffsetFromDatum] - the number of degrees to offset the rotation datum calculation (default: 0).
+ * @param {Function} [options.pathItemFilter] - a function that, given a PathItem, returns true or false. False pathItems will be ignored. (default: no filter).
  * @param {Array<BezPoint>|BezTransformPositionType|Function} [options.transformPoint] - can be [x, y] coordinates, a BezTransformPositionType, or a function that returns coordinates, given the bez (default: undefined).
  */
 function Bez(options) {
@@ -133,6 +167,7 @@ function Bez(options) {
     self.absoluteRotationAngle = options.absoluteRotationAngle || 0;
     self.rotationOffsetFromDatum = options.rotationOffsetFromDatum || 0;
     self.transformPoint = options.transformPoint;
+    self.pathItemFilter = options.pathItemFilter;
     self.appearance = options.appearance || {};
 
     self.paths = []; // the paths/points array [[BezPoints], [BezPoints], ... ]
@@ -156,7 +191,7 @@ function Bez(options) {
         self.consumePoints(options.paths)
 
     else
-        throw Error('new Bez failed: no `pageItem` or `points` supplied.');
+        throw Error('new Bez failed: no `pageItem` or `paths` supplied.');
 
     self.doc = self.doc || app.activeDocument;
 
@@ -182,8 +217,6 @@ function Bez(options) {
         throw Error('new Bez failed: no `pathsClosed` supplied.');
 
 };
-
-
 
 
 /**
@@ -266,8 +299,6 @@ Bez.prototype.getCoordinatesOfTransformPoint = function getCoordinatesOfTransfor
 };
 
 
-
-
 /**
  * Returns a function that, given a bez, will
  * return coordinates for a BezPoint specified
@@ -299,8 +330,6 @@ Bez.getCoordinatesOfPoint = function bezGetCoordinatesOf(pathIndex, pointIndex) 
     };
 
 };
-
-
 
 
 /**
@@ -335,9 +364,7 @@ Bez.prototype.duplicate = function duplicate(duplicatePageItem) {
         }
     );
 
-}
-
-
+};
 
 
 /**
@@ -405,7 +432,7 @@ Bez.prototype.point = function myPoint(pathIndex, pointIndex) {
  * Loads points into the bez.
  * @param {Array<any>} points - the points.
  */
-Bez.prototype.consumePoints = function (points) {
+Bez.prototype.consumePoints = function consumePoints(points) {
 
     var self = this;
 
@@ -423,13 +450,11 @@ Bez.prototype.consumePoints = function (points) {
 };
 
 
-
-
 /**
  * Loads pageItem into the bez.
  * @param {PathItem|CompoundPathItem} pageItem - an Illlustrator PathItem or CompoundPathItem.
  */
-Bez.prototype.consumePageItem = function (pageItem) {
+Bez.prototype.consumePageItem = function consumePageItem(pageItem) {
 
     if (pageItem == undefined)
         return;
@@ -443,8 +468,17 @@ Bez.prototype.consumePageItem = function (pageItem) {
 
     // store CompoundPathItem
     if (pageItem.constructor.name == 'CompoundPathItem')
-        for (var i = 0, len = pageItem.pathItems.length; i < len; i++)
-            self.pathItems[i] = pageItem.pathItems[i];
+        for (var i = 0, len = pageItem.pathItems.length; i < len; i++) {
+            if (
+                undefined == self.pathItemFilter
+                || self.pathItemFilter(pageItem.pathItems[i])
+            )
+                self.pathItems.push(pageItem.pathItems[i]);
+        }
+
+    else if (pageItem.constructor.name == 'GroupItem')
+        // how to handle a group item here?
+        throw Error('Don\'t know how to handle a group item here.');
 
     // store PathItem
     else if (pageItem.hasOwnProperty('pathPoints'))
@@ -470,33 +504,30 @@ Bez.prototype.consumePageItem = function (pageItem) {
 };
 
 
-
-
 /**
  * Returns the bez's centroid.
  * @param {Number} [flatness] - the average length of lines when approximating curved segments (default: undefined, do not approximate curved segments).
  * @param {<Array<Array<Number>>} [polygon] - an array of path/points coordinates (default: make polygon from bez's points).
  * @returns {Array<Number>} - the centroid [x, y].
  */
-Bez.prototype.centroid = function myCentroid(flatness, polygon) {
+Bez.prototype.getCentroid = function getMyCentroid(flatness, polygon) {
 
     var self = this;
 
-    return getCentroid(polygon || self.getPolygon(flatness));
+    return Bez.getCentroid(polygon || self.getPolygon(flatness));
 
 };
 
 
-
 /**
- * Returns true with point `p` intersects with the Bez.
+ * Returns true with point `p` is contained by with the bez.
  * @author m1b and chatGPT
  * @version 2023-06-12
  * @param {Array<Number>} p - a point [x, y].
  * @param {Number} flatness - length of line segments in pts when approximating curves (default: 2).
  * @returns {Boolean}
  */
-Bez.prototype.intersectsWithPoint = function intersectsWithPoint(p, flatness) {
+Bez.prototype.containsPoint = function containsPoint(p, flatness) {
 
     var self = this,
         x = p[0],
@@ -521,7 +552,8 @@ Bez.prototype.intersectsWithPoint = function intersectsWithPoint(p, flatness) {
                 yj = polygon[j][1],
 
                 intersect = (
-                    ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+                    ((yi > y) !== (yj > y))
+                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
                 );
 
             if (intersect)
@@ -539,10 +571,6 @@ Bez.prototype.intersectsWithPoint = function intersectsWithPoint(p, flatness) {
     return inside;
 
 };
-
-
-
-
 
 
 /**
@@ -679,8 +707,6 @@ Bez.pathItemsFromInterpolation = function pathItemsFromInterpolation(options) {
 };
 
 
-
-
 /**
  * Adds extra points to each path segment.
  * @author m1b
@@ -745,10 +771,6 @@ Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
 };
 
 
-
-
-
-
 /**
  * Returns a new paths/points array including
  * extra points added to each segment.
@@ -795,7 +817,7 @@ Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
  * @param {Number} [options.numberOfPoints] - the number of points to add between existing points.
  * @param {Array<Number>} [options.values] - array of numbers in range 0..1.
  * @param {Array<Number>} [options.lengths] - array of numbers representing lengths in points at which to add points.
- * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: true).
+ * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: false).
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
  * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
  */
@@ -803,7 +825,7 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
 
     options = options || {};
 
-    var paths = options.paths,
+    var paths = Bez.copyPaths(options.paths),
         pathsClosed = options.pathsClosed,
         pointsWithExtraPoints = [],
         distance = options.distance,
@@ -811,7 +833,7 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
         values = options.values,
         lengths = options.lengths,
         filterFunction = options.filterFunction,
-        selectedSegmentsOnly = options.selectedSegmentsOnly !== false,
+        selectedSegmentsOnly = options.selectedSegmentsOnly === true,
         retractControlPoints = options.retractControlPoints === true;
 
     if (
@@ -832,33 +854,46 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
     if (distance == 0)
         distance == Infinity;
 
+    var points,
+        closed,
+        newPoints,
+        pointsCount,
+        tValues,
+        splitPoints,
+        skipThisSegment,
+        end,
+        next;
+
     pathsLoop:
     for (var i = 0, l = paths.length; i < l; i++) {
 
-        var points = paths[i].slice(),
-            closed = pathsClosed[i],
-            newPoints = [],
-            pointsCount = points.length;
+        points = paths[i];
+        closed = pathsClosed[i];
+        newPoints = [];
+        pointsCount = points.length;
 
         if (points.length < 2)
             continue;
 
         pointsLoop:
-        for (var j = 0; j < pointsCount; j++) {
+        for (var j = 0, p1, p2; j < pointsCount; j++) {
 
             // $/*debug*/.writeln('>> j = ' + j);
+            p1 = new BezPoint(points[j]);
 
-            var closeMeNow = closed && j == pointsCount - 1,
-                index1 = j,
-                index2 = closeMeNow ? 0 : j + 1,
-                p1 = points[index1],
-                p2 = points[index2],
-                skipThisSegment = false;
+            end = j == pointsCount - 1;
 
-            if (p2 == undefined) {
+            if (end && !closed) {
+                // no closing segment
                 newPoints.push(p1);
                 break pointsLoop;
             }
+
+            next = end ? 0 : j + 1;
+
+            p2 = new BezPoint(points[next]);
+
+            skipThisSegment = false;
 
             if (
                 selectedSegmentsOnly
@@ -883,7 +918,7 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
             options.p1 = p1;
             options.p2 = p2;
 
-            var tValues = Bez.getTValues(options);
+            tValues = Bez.getTValues(options);
             // $/*debug*/.writeln('tValues = ' + tValues);
 
             if (
@@ -896,28 +931,11 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
             }
 
             // get the split points
-            var splitPoints = Bez.splitSegment(p1, p2, tValues);
-
-            if (retractControlPoints === true) {
-
-                // convert to straight lines
-                for (var s = 0; s < splitPoints.length; s++) {
-
-                    if (s != 0)
-                        splitPoints[s].leftDirection = splitPoints[s].anchor;
-
-                    if (s != splitPoints.length - 1)
-                        splitPoints[s].rightDirection = splitPoints[s].anchor;
-
-                    splitPoints[s].pointType = PointType.CORNER;
-
-                }
-
-            }
+            splitPoints = Bez.splitSegment(p1, p2, tValues);
 
             // replace p1 and p2 with the adjusted p1 and p2
-            points[index1] = splitPoints[0];
-            points[index2] = splitPoints[splitPoints.length - 1];
+            points[j] = splitPoints[0];
+            points[next] = splitPoints[splitPoints.length - 1];
 
             // add the split points to the new points
             newPoints = newPoints.concat(splitPoints);
@@ -925,11 +943,14 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
             // remove the last splitpoint (adjusted p2)
             newPoints.pop();
 
-            if (closeMeNow)
+            if (end)
                 // fix up the reciprocal control point on the first point
                 newPoints[0].leftDirection = splitPoints[splitPoints.length - 1].leftDirection;
 
         }
+
+        if (retractControlPoints)
+            Bez.retractControlPoints(newPoints);
 
         // add the points
         pointsWithExtraPoints[i] = newPoints;
@@ -939,7 +960,6 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
     return pointsWithExtraPoints;
 
 };
-
 
 
 /**
@@ -963,8 +983,6 @@ Bez.prototype.addExtraPointsBetweenPoints = function addExtraPointsBetweenPoints
     self.paths = self.addSegmentPoints(options);
 
 };
-
-
 
 
 /**
@@ -1068,7 +1086,6 @@ Bez.prototype.eachPoint = function eachPoint(options) {
 };
 
 
-
 /**
  * Makes a "hash" of the bez which can be used for comparing
  * the bez against another bez. The hash is an array which
@@ -1160,6 +1177,190 @@ Bez.prototype.makeHash = function myMakeHash(checkHash, angleTolerance, lengthRa
 };
 
 
+/**
+ * Returns the centroid [x, y] of the polygon.
+ * @param {Array<point>} polygon - an array of path/points coordinates [[x,y],[x,y]].
+ * @returns {Array<Number>} - the centroid [x, y]
+ */
+Bez.getCentroid = function getCentroid(polygon) {
+
+    var area = 0;
+    var x = 0;
+    var y = 0;
+    var points = polygon[0];
+
+    for (var i = 0, len = points.length, j = len - 1; i < len; j = i++) {
+        var a = points[i];
+        var b = points[j];
+        var f = a[0] * b[1] - b[0] * a[1];
+        x += (a[0] + b[0]) * f;
+        y += (a[1] + b[1]) * f;
+        area += f * 3;
+    }
+
+    if (area === 0)
+        return [points[0][0], points[0][1]];
+
+    return [x / area, -y / area];
+
+};
+
+
+/**
+ * Converts a CompoundPathItem into individual PathItems.
+ * @author m1b
+ * @version 2023-03-29
+ * @param {CompoundPathItem} item - the item to uncompound.
+ * @returns {Array<PathItem>} - the individual path items.
+ */
+Bez.uncompound = function uncompound(item) {
+
+    if (!item.hasOwnProperty('pathItems'))
+        return;
+
+    var pathItems = [],
+        container = item.parent;
+
+    for (var i = item.pathItems.length - 1; i >= 0; i--) {
+        pathItems[i] = item.pathItems[i];
+        pathItems[i].move(container, ElementPlacement.PLACEATBEGINNING);
+    }
+
+    return pathItems;
+
+};
+
+
+/**
+ * Returns the convex hull of a polygon.
+ * @version 2023-11-05
+ * @param {Number} [flatness] - the average length of lines when approximating curved segments (default: 2).
+ * @param {Boolean} [forceUpdate] - whether to re-calculate the convex hull even if it already exists (default: false).
+ * @returns {Array<point>} - the convex hull.
+ */
+Bez.prototype.getConvexHull = function getConvexHull(flatness, forceUpdate) {
+
+    var self = this,
+        convexHull = self.convexHull,
+        polygon = self.getPolygon(flatness, forceUpdate),
+        hull = [];
+
+    if (
+        forceUpdate !== true
+        && convexHull != undefined
+    )
+        // use stored value
+        return self.convexHull;
+
+    // we only want the outer path
+    polygon = polygon[0];
+
+    if (polygon.length < 4) {
+        // triangle is already convex
+        self.convexHull = polygon;
+        return polygon;
+    }
+
+    // Helper function to determine the orientation of three points (p, q, r)
+    function orientation(p, q, r) {
+        var val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
+        if (val === 0) return 0; // Collinear
+        return val > 0 ? 1 : 2; // Clockwise or counterclockwise
+    }
+
+    var n = polygon.length;
+    var hull = [];
+    var l = 0;
+
+    // Find the leftmost point
+    for (var i = 1; i < n; i++) {
+        if (polygon[i][0] < polygon[l][0]) {
+            l = i;
+        }
+    }
+
+    var p = l;
+    var q;
+    do {
+        hull.push(polygon[p]);
+
+        q = (p + 1) % n;
+        for (var i = 0; i < n; i++) {
+            // If i is more counterclockwise than current q, update q
+            if (orientation(polygon[p], polygon[i], polygon[q]) === 2) {
+                q = i;
+            }
+        }
+
+        p = q; // Set p as q for the next iteration
+    } while (p !== l);
+
+    return hull;
+
+};
+
+
+/**
+ * Returns the rotation amount in degrees
+ * that the item needs to be rotated such
+ * that it has a minimal bounding box area.
+ * Assuming that `item` is a rectangular
+ * object, such as a PlacedItem, RasterItem
+ * or a rectangular path item, the resulting
+ * rotation will rotate it so that the sides
+ * of the rectangle align to a factor of 90°.
+ * In other words, it will return the value
+ * required to "unrotate" the item.
+ * @author m1b
+ * @version 2023-08-25
+ * @param {PageItem} item - an Illustrator page item.
+ * @returns {Number}
+ */
+Bez.findRotationByMinimalBounds = function findRotationByMinimalBounds(item) {
+
+    // we will rotate a copy and leave the original
+    var workingItem = item.duplicate(),
+
+        convergenceThreshold = 0.001,
+        inc = 45, // the starting rotation increment
+        rotationAmount = 0,
+        prevArea = area(workingItem);
+
+    while (Math.abs(inc) >= convergenceThreshold) {
+
+        workingItem.rotate(inc);
+
+        var newArea = area(workingItem);
+
+        if (newArea < prevArea) {
+            prevArea = newArea;
+            rotationAmount -= inc;
+            inc *= 0.5;
+        }
+
+        else {
+            workingItem.rotate(-inc); // Undo the last rotation
+            inc *= -0.5;
+        }
+
+    }
+
+    // clean up
+    workingItem.remove();
+
+    return round(rotationAmount, 2);
+
+    /**
+     * Returns area of bounding box of `item`.
+     * @param {PageItem} item
+     * @returns {Number}
+     */
+    function area(item) {
+        return item.width * item.height;
+    };
+
+};
+
 
 /**
  * Draws visual indicators showing path direction.
@@ -1228,11 +1429,8 @@ Bez.prototype.drawPathIndicators = function (options) {
 };
 
 
-
-
-
 /**
- * Retracts the points control points.
+ * Given array of points, retracts all control points.
  * @author mark1bean
  * @version 2022-12-30
  * @param {Array<Array<BezPoint>>|Array<BezPoint>} points - single array, or nested arrays, of BezPoints.
@@ -1280,8 +1478,6 @@ Bez.prototype.convertToPolygon = function convertToPolygon(options) {
 };
 
 
-
-
 /**
  * Returns the visual centre of a path item,
  * in the form of the largest circle that
@@ -1314,37 +1510,57 @@ Bez.prototype.findVisualCenter = function findVisualCenter(options) {
 };
 
 
-
 /**
  * Returns array of paths/points
- * of raw coordinates [x, y].
+ * of raw coordinates [x, y] and
+ * also stores the polygon.
  * @author m1b
- * @version 2023-01-06
- * @param {Number} flatness - the average length of the flats when approximating curved segments (default: no points added).
+ * @version 2023-12-10
+ * @param {Object} options
+ * @param {Number} [options.flatness] - the average length of the flats when approximating curved segments (default: no points added).
+ * @param {Boolean} [options.forceUpdate] - whether to force update the polygon if it has already been calculated (default: false).
+ * @param {Boolean} [options.outerPathsOnly] - whether to only return polygon of the outer paths (default: false).
+ * @param {Boolean} [options.simplify] - whether to remove redundant points (default: false).
  * @returns {Array<Array<Number>>}
  */
-Bez.prototype.getPolygon = function getPolygon(flatness) {
+Bez.prototype.getPolygon = function getPolygon(options) {
+
+    options = options || {};
 
     var self = this,
-        paths;
+        flatness = options.flatness,
+        forceUpdate = true === options.forceUpdate,
+        outerPathsOnly = true === options.outerPathsOnly,
+        simplify = true === options.simplify;
 
     if (
-        flatness == undefined
-        || flatness == 0
+        true !== forceUpdate
+        && undefined != self.polygon
+        && self.polygonFlatness == flatness
     )
-        paths = self.paths;
+        // use stored value
+        return self.polygon;
 
-    else
+    var paths = self.paths;
+
+    if (
+        undefined != flatness
+        && flatness > 0
+    ) {
         // convert to polygon (flatness is average distance between path points)
         paths = Bez.addSegmentPoints({
-            distance: flatness,
-            filterfunction: Bez.isCurvedSegment,
+            distance: flatness || 1,
+            filterFunction: Bez.isCurvedSegment,
             retractControlPoints: true,
-            paths: self.paths,
-            pathsClosed: self.pathsClosed,
+            paths: paths,
+            pathsClosed: self.pathsClosed.slice(),
         });
+    }
 
-    // $/*debug*/.writeln('paths = ' + paths);
+    if (paths.length == 0)
+        throw Error('Bez.prototype.getPolygon: no paths returned.');
+
+    // $.writeln('Bez.prototype.getPolygon: paths[0].length = ' + paths[0].length);
 
     // now convert the BezPoints to an simple array
     var polyPaths = [];
@@ -1355,6 +1571,9 @@ Bez.prototype.getPolygon = function getPolygon(flatness) {
 
         for (var j = 0; j < paths[i].length; j++)
             path.points[j] = [paths[i][j].anchor[0], paths[i][j].anchor[1]];
+
+        if (simplify === true)
+            path.points = Bez.simplifyPolygon(path.points, flatness / 10);
 
         path.area = getPolygonArea(path.points);
 
@@ -1376,11 +1595,277 @@ Bez.prototype.getPolygon = function getPolygon(flatness) {
     for (var i = 0; i < polyPaths.length; i++)
         polygon.push(polyPaths[i].points);
 
+    // store it
+    self.polygon = polygon;
+    self.polygonFlatness = flatness;
+
     return polygon;
 
 };
 
 
+/**
+ * Returns true when the polygons overlap.
+ * @version 2023-11-26
+ * @param {polygon} poly1 - an array of [x, y] points.
+ * @param {polygon} poly2 - an array of [x, y] points.
+ * @returns {Boolean}
+ */
+Bez.doPolygonsOverlap = function doPolygonsOverlap(poly1, poly2) {
+
+    // decompose into convex pieces
+    var hulls1 = Bez.decomposePolygonIntoConvexPieces(poly1),
+        hulls2 = Bez.decomposePolygonIntoConvexPieces(poly2);
+
+    for (var i = 0; i < hulls1.length; i++)
+        for (var j = 0; j < hulls2.length; j++)
+            if (Bez.doPolygonsOverlapAsConvexHulls(hulls1[i], hulls2[j]))
+                return true;
+
+    return false;
+
+};
+
+
+/**
+ * Returns true when the polygons'
+ * convex hulls overlap.
+ * @author ChatGPT 3.5 and m1b
+ * @version 2023-11-26
+ * @param {polygon} poly1 - an array of [x, y] points.
+ * @param {polygon} poly2 - an array of [x, y] points.
+ * @returns {Boolean}
+ */
+Bez.doPolygonsOverlapAsConvexHulls = function doPolygonsOverlapAsConvexHulls(poly1, poly2) {
+
+    var axesToCheck = axes(poly1).concat(axes(poly2));
+
+    for (var k = 0; k < axesToCheck.length; k++) {
+        var axis = axesToCheck[k];
+        if (!overlapOnAxis(poly1, poly2, axis))
+            // separating axis found
+            return false;
+    }
+
+    // no separating axis found, polygons overlap
+    return true;
+
+
+    /**
+     * Returns array of vectors, where each vector is
+     * a pair of coordinates representing a perpendicular
+     * axis to one of the edges of the input polygon.
+     * @param {Array<point>} poly - array of [x, y] points.
+     * @returns {Array<point>}
+     */
+    function axes(poly) {
+
+        var result = [];
+
+        for (var i = 0; i < poly.length; i++) {
+            var point = poly[i],
+                nextPoint = poly[(i + 1) % poly.length],
+                edge = [nextPoint[0] - point[0], nextPoint[1] - point[1]];
+            result.push([-edge[1], edge[0]]);
+        }
+
+        return result;
+
+    };
+
+    /**
+     * Returns minimum and maximum values.
+     * @param {Array<Number>} values - the numbers to process.
+     * @returns {min: max:}
+     */
+    function getMinMax(values) {
+
+        var min = values[0],
+            max = values[0];
+
+        for (var i = 1; i < values.length; i++) {
+
+            var value = values[i];
+
+            if (value < min)
+                min = value;
+
+            else if (value > max)
+                max = value;
+        }
+
+        return { min: min, max: max };
+
+    };
+
+    /**
+     * Returns true if the polygons overlap on an axis.
+     * @param {polygon} poly1 - a polygon to test.
+     * @param {polygon} poly2 - a polygon to test.
+     * @param {Array<Number>} axis - the axis vector.
+     * @returns {Boolean}
+     */
+    function overlapOnAxis(poly1, poly2, axis) {
+
+        var proj1 = [];
+        var proj2 = [];
+
+        for (var i = 0; i < poly1.length; i++)
+            proj1[i] = poly1[i][0] * axis[0] + poly1[i][1] * axis[1];
+
+        for (var j = 0; j < poly2.length; j++)
+            proj2[j] = poly2[j][0] * axis[0] + poly2[j][1] * axis[1];
+
+        var minMax1 = getMinMax(proj1);
+        var minMax2 = getMinMax(proj2);
+
+        return (
+            minMax1.min <= minMax2.max && minMax1.max >= minMax2.min
+        );
+
+    }
+
+};
+
+
+/**
+ * Decomposes a non-convex polygon into convex
+ * sub-polygons using the ear clipping method.
+ * @author ChatGPT and m1b
+ * @version 2023-11-26
+ * @param {Array<point>} poly - an array of points.
+ * @returns {Array<Array<point>>} - array of convex polygons.
+ */
+Bez.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces(poly) {
+
+    var result = [];
+
+    while (poly.length >= 3) {
+
+        var ear = findEar(poly);
+
+        if (!ear)
+            // The polygon is not simple or convex
+            return null;
+
+        result.push(ear);
+        removeEar(poly, ear);
+
+    }
+
+    return result;
+
+
+    function isEar(poly, ear) {
+
+        var p1 = ear[0],
+            p2 = ear[1],
+            p3 = ear[2];
+
+        for (var i = 0; i < poly.length; i++) {
+
+            if (
+                poly[i] !== p1
+                && poly[i] !== p2
+                && poly[i] !== p3
+                && isPointInTriangle(poly[i], p1, p2, p3)
+            )
+                return false;
+
+        }
+
+        return true;
+
+    };
+
+    function isPointInTriangle(point, p1, p2, p3) {
+
+        var area = 0.5 * (-p2[1] * p3[0] + p1[1] * (-p2[0] + p3[0]) + p1[0] * (p2[1] - p3[1]) + p2[0] * p3[1]),
+            s = 1 / (2 * area) * (p1[1] * p3[0] - p1[0] * p3[1] + (p3[1] - p1[1]) * point[0] + (p1[0] - p3[0]) * point[1]),
+            t = 1 / (2 * area) * (p1[0] * p2[1] - p1[1] * p2[0] + (p1[1] - p2[1]) * point[0] + (p2[0] - p1[0]) * point[1]);
+
+        return s > 0 && t > 0 && 1 - s - t > 0;
+
+    };
+
+    function findEar(poly) {
+
+        for (var i = 0; i < poly.length; i++) {
+
+            var p1 = poly[i],
+                p2 = poly[(i + 1) % poly.length],
+                p3 = poly[(i + 2) % poly.length],
+                ear = [p1, p2, p3];
+
+            if (isEar(poly, ear))
+                return ear;
+
+        }
+
+        return null;
+
+    };
+
+    function removeEar(poly, ear) {
+
+        var index = indexOf(ear[1], poly);
+
+        if (index !== -1)
+            poly.splice(index, 1);
+
+    };
+
+};
+
+
+/**
+ * Returns simplified polygon, where points
+ * are removed if considered collinear.
+ * @param {polygon} poly - array of [x, y] points.
+ * @param {Number} tolerance - tolerance value; higher values tend to remove more points.
+ * @returns {polygon|Array<polygon>}
+ */
+Bez.simplifyPolygon = function simplifyPolygon(poly, tolerance) {
+
+    var simplifiedPolygon = [];
+
+    // handle multiple path polygons
+    if (poly[0][0].constructor.name == 'Array') {
+
+        for (var i = 0; i < poly.length; i++)
+            simplifiedPolygon.push(simplifyPolygon(poly[i]));
+
+        return simplifiedPolygon;
+
+    }
+
+    // add the first point
+    simplifiedPolygon.push(poly[0]);
+
+    // add non-collinear points
+    for (var i = 1; i < poly.length - 1; i++)
+        if (!isCollinear(poly[i - 1], poly[i], poly[i + 1], tolerance))
+            simplifiedPolygon.push(poly[i]);
+
+    // add the last point
+    simplifiedPolygon.push(poly[poly.length - 1]);
+
+    return simplifiedPolygon;
+
+    /**
+     * Returns true when the points fall along
+     * a line, given `tolerance`.
+     * @param {point} p1 - point [x, y].
+     * @param {point} p2 - point [x, y].
+     * @param {point} p3 - point [x, y].
+     * @returns {Boolean}
+     */
+    function isCollinear(p1, p2, p3, tolerance) {
+        var crossProduct = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]);
+        return Math.abs(crossProduct) < tolerance;
+    };
+
+};
 
 
 /**
@@ -1503,7 +1988,6 @@ Bez.prototype.closestToPoint = function closestToPoint(point) {
 };
 
 
-
 /**
  * Re-orders a path by stipulating the first point.
  * @author m1b
@@ -1553,7 +2037,6 @@ Bez.prototype.setFirstPoint = function reverse(options) {
 };
 
 
-
 /**
  * Returns the indices of the point.
  * @param {BezPoint} point - the BezPoint.
@@ -1570,8 +2053,6 @@ Bez.prototype.getIndicesOfPoint = function getIndicesOfPoint(point) {
                 return [i, j];
 
 };
-
-
 
 
 /**
@@ -1631,8 +2112,6 @@ Bez.prototype.getClosestPointTo = function getClosestPointTo(options) {
 
     return closestPoint;
 };
-
-
 
 
 /**
@@ -1703,7 +2182,6 @@ Bez.getExtremaOfCurve = function getExtremaOfCurve(p1, p2) {
 };
 
 
-
 /**
  * Returns k value.
  * @param {Array<Number>} q - segment description - see Bez.getQ()
@@ -1735,7 +2213,6 @@ Bez.getK = function getK(q) {
 };
 
 
-
 /**
  * Returns the length of bezier curve segment.
  * @param {Array<Number>} k - eg. output of Bez.getK()
@@ -1761,7 +2238,6 @@ Bez.getLength = function getLength(k, t) {
 };
 
 
-
 /**
  * Get description of segment
  * between two points
@@ -1772,7 +2248,6 @@ Bez.getLength = function getLength(k, t) {
 Bez.getQ = function getQ(p1, p2) {
     return [p1.anchor, p1.rightDirection, p2.leftDirection, p2.anchor];
 };
-
 
 
 /**
@@ -1794,7 +2269,6 @@ Bez.pointOnBezier = function pointOnBezier(q, t) {
 };
 
 
-
 /**
  * Calculate length of path segment.
  * @param {BezPoint|PathPoint} p1
@@ -1812,8 +2286,6 @@ Bez.getSegmentLength = function BezGetSegmentLength(p1, p2) {
     return Bez.getLength(Bez.getK(Bez.getQ(p1, p2)), 1);
 
 };
-
-
 
 
 /**
@@ -1989,7 +2461,6 @@ Bez.getTValues = function bezGetTValues(options) {
     };
 
 };
-
 
 
 /**
@@ -2180,7 +2651,6 @@ Bez.tForLength = function tForLength(q, len, k) {
 };
 
 
-
 /**
  * Updates this.pageItem using this.paths.
  * @author m1b
@@ -2193,25 +2663,9 @@ Bez.prototype.draw = function draw(options) {
 
     options = options || {};
 
-    var self = this,
-        oldPageItem = self.pageItem,
-        container = options.container;
+    var self = this;
 
-    options.doc = self.doc;
-    options.paths = self.paths;
-    options.pathsClosed = self.pathsClosed;
-    options.appearance = self.appearance;
-
-    self.consumePageItem(Bez.draw(options));
-
-    if (
-        oldPageItem != undefined
-        && container == undefined
-    )
-        self.pageItem.move(oldPageItem, ElementPlacement.PLACEBEFORE);
-
-    if (oldPageItem != undefined)
-        oldPageItem.remove();
+    self.updatePageItem();
 
     if (options.select === true)
         self.select();
@@ -2219,23 +2673,22 @@ Bez.prototype.draw = function draw(options) {
 };
 
 
-
-
 /**
- * Create and return a new path item.
- * This will not replace the a bez's
- * pathItem (see Bez.prototype.draw)
+ * Draws the supplied paths, either
+ * updating a supplied pageItem, or
+ * creating a new pageItem.
  * @author m1b
- * @version 2023-01-07
+ * @version 2023-11-29
  * @param {Object} options
  * @param {Object} options.doc - an Illustrator Document.
  * @param {Array<Array<BezPoint>>} options.paths - the paths/points array.
  * @param {Array<Boolean>} options.pathsClosed - array showing which paths are closed.
+ * @param {PageItem} [options.pageItem] - a page item to update (default: create new page item).
  * @param {Object} [options.properties] - an object of key/values to apply to each path (default: undefined).
  * @param {Boolean} [options.drawAsCompoundPathItem] - whether to draw as CompoundPathItem or individual PathItems (default: true).
- * @param {Layer|GroupItem} [options.container] - the object that the bez will be drawn into (default: active layer).
+ * @param {Layer|GroupItem} [options.container] - the object that a new item will be drawn into (default: active layer).
  * @param {Boolean} [options.select] - whether to select the drawn item(s) (default: false).
- * @returns {PathItem} the path item created.
+ * @returns {PathItem}
  */
 Bez.draw = function bezDraw(options) {
 
@@ -2243,7 +2696,8 @@ Bez.draw = function bezDraw(options) {
 
     var doc = options.doc,
         paths = options.paths,
-        pathsClosed = options.pathsClosed,
+        pathsClosed = options.pathsClosed || [],
+        pageItem = options.pageItem,
         drawAsCompoundPathItem = options.drawAsCompoundPathItem !== false,
         select = options.select === true;
 
@@ -2251,37 +2705,54 @@ Bez.draw = function bezDraw(options) {
         throw Error('Bez.draw failed: no `doc` parameter.');
 
     if (paths == undefined)
-        throw Error('Bez.prototype.draw failed: no `paths` parameter.');
+        throw Error('Bez.draw failed: no `paths` parameter.');
 
     if (
-        pathsClosed == undefined
-        && (
+        (
             pathsClosed.constructor.name != 'Boolean'
-            || pathsClosed.length !== paths.length
+            && pathsClosed.constructor.name != 'Array'
+        )
+        || (
+            pathsClosed.constructor.name == 'Array'
+            && pathsClosed.length !== paths.length
         )
     )
-        throw Error('Bez.prototype.draw failed: bad `pathsClosed` parameter.');
+        throw Error('Bez.draw failed: bad `pathsClosed` parameter.');
 
-    if (select)
-        doc.selection = [];
+    // if (select)
+    //     doc.selection = [];
 
     var container = options.container || doc.activeLayer,
         location,
         drawnItems = [];
 
+    var makeCompoundPath = paths.length > 1 && drawAsCompoundPathItem == true;
+    var createNewPageItem = pageItem == undefined
+        || (makeCompoundPath && pageItem.constructor.name !== 'CompoundPathItem')
+        || (!makeCompoundPath && pageItem.constructor.name === 'CompoundPathItem');
+
     if (
-        paths.length > 1
-        && drawAsCompoundPathItem == true
+        createNewPageItem
+        && makeCompoundPath
     ) {
-        drawnItems[0] = container.compoundPathItems.add();
-        // we'll add the path items to the compoundPathItem
-        location = drawnItems[0];
+        pageItem = container.compoundPathItems.add();
+        drawnItems[0] = pageItem;
+    }
+
+    if (
+        pageItem != undefined
+        && pageItem.constructor.name == 'CompoundPathItem'
+    ) {
+        location = pageItem;
     }
     else {
         location = container;
     }
 
     var pathsCount = paths.length - 1;
+
+    while (location.pathItems.length < pathsCount)
+        location.pathItems.add();
 
     pathsLoop:
     for (var i = pathsCount; i >= 0; i--) {
@@ -2299,10 +2770,20 @@ Bez.draw = function bezDraw(options) {
                 continue addPathPointsLoop;
 
             var p = item.pathPoints.add();
-            p.anchor = points[j].anchor;
-            p.leftDirection = points[j].leftDirection;
-            p.rightDirection = points[j].rightDirection;
-            p.pointType = points[j].pointType;
+
+            if (points[j].constructor.name === 'Array') {
+                p.anchor = points[j];
+                p.leftDirection = points[j];
+                p.rightDirection = points[j];
+                p.pointType = PointType.CORNER;
+            }
+
+            else {
+                p.anchor = points[j].anchor;
+                p.leftDirection = points[j].leftDirection;
+                p.rightDirection = points[j].rightDirection;
+                p.pointType = points[j].pointType;
+            }
 
         }
 
@@ -2322,17 +2803,134 @@ Bez.draw = function bezDraw(options) {
             // we only need to do this for the first path item
             applyProperties(item, doc, options.properties);
 
-        // if (drawAsCompoundPathItem == false)
         drawnItems.push(item);
 
     }
 
-    // return the drawn item or items
-    return drawnItems.length === 1 ? drawnItems[0] : drawnItems;
+    if (
+        drawnItems.length == 1
+        || drawAsCompoundPathItem == true
+    )
+        return drawnItems[0]
+
+    else if (drawnItems.length > 1)
+        return drawnItems;
 
 };
 
 
+/**
+ * Updates the bez's page item
+ * to match its path/points array.
+ * @author m1b
+ * @version 2023-11-29
+ */
+Bez.prototype.updatePageItem = function updatePageItem() {
+
+    var self = this,
+        doc = self.doc,
+        pageItem = self.pageItem,
+        paths = self.paths,
+        pathsClosed = self.pathsClosed;
+
+    if (doc == undefined)
+        throw Error('Bez.draw failed: no `doc` parameter.');
+
+    if (paths == undefined)
+        throw Error('Bez.prototype.draw failed: no `paths` parameter.');
+
+    if (
+        pathsClosed == undefined
+        && (
+            pathsClosed.constructor.name != 'Boolean'
+            || pathsClosed.length !== paths.length
+        )
+    )
+        throw Error('Bez.prototype.draw failed: bad `pathsClosed` parameter.');
+
+    if (pageItem != undefined) {
+
+        if (
+            (
+                pageItem.constructor.name === 'CompoundPathItem'
+                && paths.length === 1
+            )
+            || (
+                pageItem.constructor.name === 'PathItem'
+                && paths.length !== 1
+            )
+        ) {
+            // page item is wrong type, so start again
+            pageItem.remove();
+            self.pageItem = pageItem = undefined;
+        }
+
+    }
+
+    if (pageItem == undefined) {
+
+        // create the appropriate page item
+        pageItem = paths.length === 1
+            ? doc.activeLayer.pathItems.add()
+            : doc.activeLayer.compoundPathItems.add();
+
+    }
+
+    var pathItems,
+        pathsCount = paths.length;
+
+    if (pageItem.constructor.name == 'CompoundPathItem') {
+        // adjust the number of path items
+        while (pageItem.pathItems.length < pathsCount)
+            pageItem.pathItems.add();
+        while (pageItem.pathItems.length > pathsCount)
+            pageItem.pathItems[pageItem.pathItems.length - 1].remove();
+        pathItems = pageItem.pathItems;
+    }
+    else {
+        pathItems = [pageItem];
+    }
+
+    pathsLoop:
+    for (var i = 0; i < pathsCount; i++) {
+
+        var item = pathItems[i],
+            points = paths[i],
+            pointsCount = paths[i].length;
+
+        // ensure pathItem has the correct number of pathPoints
+        while (item.pathPoints.length < pointsCount)
+            item.pathPoints.add();
+        while (item.pathPoints.length > pointsCount)
+            item.pathPoints[item.pathPoints.length - 1].remove();
+
+        // adjust the points
+        pointsLoop:
+        for (var j = 0; j < pointsCount; j++) {
+
+            if (points[j].doNotDraw)
+                continue pointsLoop;
+
+            var p = item.pathPoints[j];
+            p.anchor = points[j].anchor;
+            p.leftDirection = points[j].leftDirection;
+            p.rightDirection = points[j].rightDirection;
+            p.pointType = points[j].pointType;
+
+        }
+
+        // set the closed
+        if (pathsClosed.constructor.name == 'Boolean')
+            item.closed = pathsClosed;
+        else if (pathsClosed.constructor.name == 'Array')
+            item.closed = pathsClosed[i];
+
+        // set the polarity
+        item.polarity = i == 0 ? PolarityValues.POSITIVE : PolarityValues.NEGATIVE;
+
+    }
+
+};
 
 
 /**
@@ -2358,23 +2956,62 @@ Bez.prototype.addPath = function bezAddPath(points, closed) {
 };
 
 
+/**
+ * Returns a copy of a path or array of paths.
+ * Use this to avoid unintentionally manipulating
+ * the existing path(s).
+ * @param {Array<BezPoint>|Array<Array<BezPoint>>} paths - the paths to copy.
+ * @returns {Array<BezPoint>|Array<Array<BezPoint>>}
+ */
+Bez.copyPaths = function copyPaths(paths) {
+
+    if (paths[0].constructor.name == 'Array') {
+
+        var newPaths = [];
+
+        for (var i = 0; i < paths.length; i++)
+            newPaths.push(Bez.copyPaths(paths[i]));
+
+        return newPaths;
+
+    }
+
+    var newPath = [];
+
+    for (var i = 0; i < paths.length; i++)
+        newPath.push(new BezPoint(paths[i]));
+
+    return newPath;
+
+};
 
 
 /**
  * Returns the bez's bounding box.
  * @author m1b
- * @version 2023-01-01
+ * @version 2023-11-26
+ * @param {Boolean} forceUpdate - whether to recalculate the bounds (default: use the cached value).
  * @returns {Array<Number>}
  */
-Bez.prototype.getBounds = function () {
+Bez.prototype.getBounds = function (forceUpdate) {
 
-    var self = this,
+    var self = this;
+
+    if (
+        forceUpdate !== true
+        && self.bounds != undefined
+    )
+        // use stored value
+        return self.bounds;
+
+    var coords = [[], []],
+
+        // calculate extrama
         paths = Bez.addExtrema({
             paths: self.paths,
             pathsClosed: self.pathsClosed,
             selectedSegmentsOnly: false
-        }),
-        coords = [[], []];
+        });
 
     for (var i = 0; i < paths.length; i++)
         for (var j = 0; j < paths[i].length; j++) {
@@ -2382,16 +3019,18 @@ Bez.prototype.getBounds = function () {
             coords[1].push(paths[i][j].anchor[1]);
         }
 
-    return [
+    var bounds = [
             /* left */ Math.min.apply(null, coords[0]),
             /* top */ Math.max.apply(null, coords[1]),
             /* right */ Math.max.apply(null, coords[0]),
             /* bottom */ Math.min.apply(null, coords[1]),
     ];
 
+    self.bounds = bounds;
+
+    return bounds;
+
 };
-
-
 
 
 /**
@@ -2409,7 +3048,6 @@ Bez.prototype.getCoordinatesOfTransformPosition = function getCoordinatesOfTrans
     return Bez.getCoordinatesOfTransformPosition(transformPositionType, bounds || this.getBounds());
 
 };
-
 
 
 /**
@@ -2458,8 +3096,6 @@ Bez.getCoordinatesOfTransformPosition = function bezGetCoordinatesOfTransformPos
         return [bounds[0], bounds[1] + (bounds[3] - bounds[1]) / 2];
 
 };
-
-
 
 
 /**
@@ -2793,8 +3429,6 @@ Bez.prototype.scale = function scale(options) {
 };
 
 
-
-
 /**
  * Translates the bez's points,
  * with aligning functionality.
@@ -2978,7 +3612,6 @@ Bez.prototype.translate = function translate(options) {
 };
 
 
-
 /**
  * Returns the "angle" of a point,
  * in terms of the path flow.
@@ -3039,8 +3672,6 @@ Bez.isStraightLineSegment = function isStraightLineSegment(p1, p2) {
 };
 
 
-
-
 /**
  * Returns true when the segment p1,p2 is a curved segment.
  * @param {BezPoint|PathPoint} p1 - first point of segment.
@@ -3052,8 +3683,6 @@ Bez.isCurvedSegment = function isCurvedSegment(p1, p2) {
     return !Bez.isStraightLineSegment(p1, p2);
 
 };
-
-
 
 
 /**
@@ -3077,8 +3706,6 @@ Bez.segmentIsSelected = function bezSegmentIsSelected(p1, p2) {
     );
 
 };
-
-
 
 
 /**
@@ -3117,8 +3744,6 @@ Bez.prototype.smallestDistanceFrom = function smallestDistanceFrom(bez) {
 };
 
 
-
-
 /**
  * Sort a paths/points array.
  * The `points` parameter can be
@@ -3154,7 +3779,6 @@ Bez.sortPointsByXOrY = function sortPointsByXOrY(points, sortType) {
     return sorted;
 
 };
-
 
 
 /**
@@ -3212,7 +3836,6 @@ Bez.sortPointsByDistanceFromPoint = function sortPointsByDistanceFromPoint(point
 };
 
 
-
 /**
  * Draws and returns a circle Bez.
  * @param {Document} doc - an Illustrator Document.
@@ -3240,7 +3863,6 @@ Bez.drawCircle = function bezDrawCircle(doc, center, radius, appearance) {
 };
 
 
-
 /**
  * Draws and returns a circle Bez.
  * @param {Document} doc - an Illustrator Document.
@@ -3266,7 +3888,6 @@ Bez.drawSquare = function bezDrawSquare(doc, center, sideLength, appearance) {
     return square;
 
 };
-
 
 
 /**
@@ -3313,8 +3934,6 @@ Bez.circlePoints = function bezCirclePoints(center, radius) {
 };
 
 
-
-
 /**
  * Returns array of BezPoints
  * constituting a circle;
@@ -3339,8 +3958,6 @@ Bez.squarePoints = function bezSquarePoints(center, sideLength) {
 };
 
 
-
-
 /**
 * Adds new points at extrema of paths.
 * @author m1b
@@ -3349,6 +3966,8 @@ Bez.squarePoints = function bezSquarePoints(center, sideLength) {
 * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: true).
 */
 Bez.prototype.addExtrema = function addExtrema(options) {
+
+    options = options || {};
 
     var self = this;
 
@@ -3361,8 +3980,6 @@ Bez.prototype.addExtrema = function addExtrema(options) {
     self.draw({ select: true });
 
 };
-
-
 
 
 /**
@@ -3379,7 +3996,7 @@ Bez.addExtrema = function addExtrema(options) {
 
     options = options || {};
 
-    var paths = options.paths,
+    var paths = Bez.copyPaths(options.paths),
         pathsClosed = options.pathsClosed,
         selectedSegmentsOnly = options.selectedSegmentsOnly !== false,
         results = [];
@@ -3464,8 +4081,6 @@ Bez.addExtrema = function addExtrema(options) {
 };
 
 
-
-
 /**
  * Selects the bez's pathItem.
  * @author m1b
@@ -3479,7 +4094,6 @@ Bez.prototype.select = function select() {
         self.pageItem.selected = true;
 
 };
-
 
 
 /**
@@ -3496,7 +4110,6 @@ Bez.prototype.deselect = function deselect() {
 };
 
 
-
 /**
  * Returns string representation of the Bez.
  * @author m1b
@@ -3509,6 +4122,34 @@ Bez.prototype.toString = function bezToString() {
 
 };
 
+
+/**
+ * Converts a simple polygon array to an array of BezPoints.
+ * @param {Array<Array<point>>} poly - an array of [x, y] points.
+ * @return {Array<BezPoint>}
+ */
+Bez.convertToPaths = function convertToPaths(poly) {
+
+    // handle multiple paths
+    if ('Array' === poly[0][0].constructor.name) {
+
+        var paths = [];
+
+        for (var i = 0; i < poly.length; i++)
+            paths.push(Bez.convertToPaths(poly[i]))
+
+        return paths;
+
+    }
+
+    var path = [];
+
+    for (var i = 0; i < poly.length; i++)
+        path.push(new BezPoint(poly[i]));
+
+    return path;
+
+};
 
 
 /**
@@ -3554,9 +4195,6 @@ Bez.prototype.getSimilarityTo = function getSimilarityTo(bez, options) {
     return compareArraysWithDifference(hash1, hash2, start, inc)
 
 };
-
-
-
 
 
 /**
@@ -3610,7 +4248,6 @@ Bez.prototype.calculateAngles = function calculateAngles() {
     }
 
 };
-
 
 
 /**
@@ -3675,8 +4312,6 @@ Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathO
     }
 
 };
-
-
 
 
 /**
@@ -3959,8 +4594,6 @@ Bez.convertPathItemToDashes = function bezConvertPathItemToDashes(options) {
 };
 
 
-
-
 /**
  * Expand points by creating new points according
  * to the `cutLengths` property of any point.
@@ -4070,16 +4703,12 @@ Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLe
 
             }
 
-            // $/*debug*/.writeln('   tValues = ' + currentPoint.tValues);
-
         }
 
         if (cutLengthsStack.length > 0)
             cutLengthsStack[0] -= remainder;
 
     }
-
-    // Explr.init(points, 'distributed');
 
     /*
         Split each segment at the calculated tValues
@@ -4148,7 +4777,6 @@ Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLe
     return newPoints;
 
 };
-
 
 
 /**
@@ -4224,7 +4852,6 @@ Bez.cutIntoPaths = function bezCutIntoPaths(points, filterFunction) {
 };
 
 
-
 /**
  * Returns paths/closed such that each segment
  * of each path is converted into a path.
@@ -4268,7 +4895,6 @@ Bez.convertSegmentsToPaths = function bezConvertSegmentsToPaths(paths, closed) {
 };
 
 
-
 /**
  * Converts the Bez's paths such that each original
  * segment of each original path is converted into
@@ -4287,7 +4913,6 @@ Bez.prototype.convertSegmentsToPaths = function convertSegmentsToPaths() {
     self.dirty = true;
 
 };
-
 
 
 /**
@@ -4377,8 +5002,6 @@ function BezPoint(p) {
 };
 
 
-
-
 /**
  * Returns string representation of BezPoint.
  * @returns {String}
@@ -4399,8 +5022,6 @@ BezPoint.prototype.toString = function bezPointToString() {
 };
 
 
-
-
 /**
  * Returns true when Bezpoint has extended left control point.
  * @returns {Boolean}
@@ -4413,8 +5034,6 @@ BezPoint.prototype.hasLeftDirection = function hasLeftDirection() {
 };
 
 
-
-
 /**
  * Returns true when Bezpoint has extended right control point.
  * @returns {Boolean}
@@ -4425,8 +5044,6 @@ BezPoint.prototype.hasRightDirection = function hasRightDirection() {
         || this.anchor[1] != this.rightDirection[1]
     )
 };
-
-
 
 
 /**
@@ -4444,8 +5061,6 @@ BezPoint.prototype.retractControlPoints = function () {
 };
 
 
-
-
 /**
  * Returns distance in points between
  * the BezPoint and the supplied point.
@@ -4461,8 +5076,6 @@ BezPoint.prototype.distanceFromPoint = function distanceFromPoint(point) {
     return distanceBetweenPoints(self.anchor, point);
 
 };
-
-
 
 
 /**
@@ -4487,7 +5100,6 @@ BezPoint.bezPointFromInterpolation = function bezPointFromInterpolation(p1, p2, 
 };
 
 
-
 /**
  * Returns true when this bezPoint
  * is equal to `point`.
@@ -4507,8 +5119,6 @@ BezPoint.prototype.isEqualTo = function isEqualTo(point) {
     );
 
 };
-
-
 
 
 /**
@@ -4548,7 +5158,6 @@ BezPoint.prototype.scale = function bezPointScale(transformPoint, scaleFactor) {
 };
 
 
-
 /**
  * Returns a new BezPoint that is translated.
  * @author m1b
@@ -4580,7 +5189,6 @@ BezPoint.prototype.translate = function bezPointTranslate(translation) {
     }
 
 };
-
 
 
 /**
@@ -4630,8 +5238,6 @@ BezPoint.prototype.rotate = function bezPointRotate(transformPoint, angle) {
 };
 
 
-
-
 /**
  * Returns true when a stroke dash section should be
  * reset at this point, attempting to match Illustrator's
@@ -4644,8 +5250,6 @@ BezPoint.checkForDashCornerPoint = function bezPointAlignStrokeDashHere(p) {
     // if angle is too low, break section here
     return (Math.abs(p.angle) < 135);
 };
-
-
 
 
 /**
@@ -4703,8 +5307,6 @@ function BezGroup(options) {
 };
 
 
-
-
 /**
  * Loads groupItem into the bezGroup.
  * @param {PathItem|CompoundPathItem} items - an Illlustrator GroupItem.
@@ -4738,8 +5340,6 @@ BezGroup.prototype.consumeItems = function (items) {
     }
 
 };
-
-
 
 
 /**
@@ -4879,9 +5479,6 @@ BezGroup.prototype.rotate = function rotate(options) {
 };
 
 
-
-
-
 // functions:
 
 
@@ -4899,8 +5496,6 @@ function intermediatePoint(p1, p2, t) {
         (p2[1] - p1[1]) * t + p1[1]
     ];
 };
-
-
 
 
 /**
@@ -4956,8 +5551,6 @@ function distanceFromSegment(fromPoint, p1, p2) {
 };
 
 
-
-
 /**
  * Adds a new PathPoint to an item.
  * @param {PathItem} item - the target path item
@@ -4979,7 +5572,6 @@ function addPoint(item, p) {
     return newPoint;
 
 };
-
 
 
 /**
@@ -5092,8 +5684,6 @@ function strokeDashesAreAligned(item, keepSelection, doc) {
 };
 
 
-
-
 /**
  * Cycle value n between m values
  * eg. toggle(0,2) // 1
@@ -5105,7 +5695,6 @@ function toggle(n, m) {
     m = m || 2;
     return (n + 1) % m;
 };
-
 
 
 /**
@@ -5135,8 +5724,6 @@ function round(nums, places, floor) {
 };
 
 
-
-
 function getPolygonArea(points) {
 
     var area = 0;
@@ -5158,7 +5745,6 @@ function getPolygonArea(points) {
 };
 
 
-
 /**
  * Returns angle ABC in degrees.
  * @param {Array<Number>} a - point [x, y].
@@ -5178,7 +5764,6 @@ function getAngleABC(a, b, c) {
 };
 
 
-
 /**
  * Returns distance between two points.
  * @author m1b
@@ -5194,9 +5779,6 @@ function distanceBetweenPoints(p1, p2) {
     return Math.sqrt(a * a + b * b);
 
 };
-
-
-
 
 
 /**
@@ -5245,8 +5827,6 @@ function differenceBetweenPoints(p1, p2) {
 };
 
 
-
-
 /**
  * Returns a page item's Document.
  * @param {PageItem} obj - a page item
@@ -5267,8 +5847,6 @@ function getParentDocument(obj) {
         return obj;
 
 };
-
-
 
 
 /**
@@ -5321,7 +5899,6 @@ function itemsInsideGroupItems(items, typenames, level) {
 };
 
 
-
 /**
  * Returns true if item.typename matches any of the typenames
  * @param {PathItem} item - a path item
@@ -5345,38 +5922,6 @@ function itemIsType(item, typenames) {
     return false;
 
 };
-
-
-/**
- * Returns the centroid [x, y]
- * of the polygon.
- * @param {<Array<Array<Number>>} polygon - an array of path/points coordinates.
- * @returns {Array<Number>} - the centroid [x, y]
- */
-function getCentroid(polygon) {
-
-    var area = 0;
-    var x = 0;
-    var y = 0;
-    var points = polygon[0];
-
-    for (var i = 0, len = points.length, j = len - 1; i < len; j = i++) {
-        var a = points[i];
-        var b = points[j];
-        var f = a[0] * b[1] - b[0] * a[1];
-        x += (a[0] + b[0]) * f;
-        y += (a[1] + b[1]) * f;
-        area += f * 3;
-    }
-
-    if (area === 0)
-        return [points[0][0], points[0][1]];
-
-    return [x / area, -y / area];
-
-};
-
-
 
 
 /**
@@ -5433,7 +5978,6 @@ function compareArraysWithDifference(arr1, arr2, start, inc) {
 };
 
 
-
 var inch = 72;
 var mm = 2.834645669;
 
@@ -5473,8 +6017,6 @@ function applyProperties(item, doc, properties) {
 };
 
 
-
-
 /**
  * Return a scaleFactor needed to perform a box fitting.
  * @param {BezScaleType} scaleType - the scale type (default: BezScaleType.FIT_BOX)
@@ -5485,7 +6027,8 @@ function applyProperties(item, doc, properties) {
  */
 function getScaleFactorForBoxFitting(scaleType, bounds, box, strokeWidth) {
 
-    var scaleFactor = [1, 1],
+    var scaleType = scaleType || BezScaleType.FIT_BOX,
+        scaleFactor = [1, 1],
         strokeWidth = strokeWidth || 0,
         boxWidth = box[2] - box[0],
         boxHeight = -(box[3] - box[1]),
@@ -5496,12 +6039,7 @@ function getScaleFactorForBoxFitting(scaleType, bounds, box, strokeWidth) {
         boxRatio = boxWidth / boxHeight,
         itemRatio = itemWidth / itemHeight;
 
-    // $/*debug*/.writeln('boxWidth = ' + boxWidth);
-    // $/*debug*/.writeln('boxHeight = ' + boxHeight);
-    // $/*debug*/.writeln('itemWidth = ' + itemWidth);
-    // $/*debug*/.writeln('itemHeight = ' + itemHeight);
-
-    if (scaleType == BezScaleType.FIT_BOX) {
+    if (BezScaleType.FIT_BOX === scaleType) {
 
         // scale to fit inside bounding box
         if (itemRatio < boxRatio)
@@ -5513,7 +6051,7 @@ function getScaleFactorForBoxFitting(scaleType, bounds, box, strokeWidth) {
 
     }
 
-    else if (scaleType == BezScaleType.FILL_BOX) {
+    else if (BezScaleType.FILL_BOX === scaleType) {
 
         // scale to fill bounding box completely
         if (itemRatio < boxRatio)
@@ -5525,19 +6063,20 @@ function getScaleFactorForBoxFitting(scaleType, bounds, box, strokeWidth) {
 
     }
 
-    else if (scaleType == BezScaleType.STRETCH) {
+    else if (BezScaleType.STRETCH === scaleType) {
 
         // scale to match bounding box (stretch to fit)
         scaleFactor = [(boxWidth - strokeWidth) / itemWidth, (boxHeight - strokeWidth) / itemHeight];
 
     }
 
-    if (scaleFactor.constructor.name == 'Number')
+    if ('Number' === scaleFactor.constructor.name)
         scaleFactor = [scaleFactor, scaleFactor];
 
     return scaleFactor;
 
 };
+
 
 /**
  * Returns total of array values.
@@ -5549,7 +6088,6 @@ function sum(arr) {
     while (i--) sum += arr[i];
     return sum;
 };
-
 
 
 /**
@@ -5568,25 +6106,411 @@ function indexOf(obj, arr) {
 
 
 /**
- * Converts a CompoundPathItem into individual PathItems.
- * @author m1b
- * @version 2023-03-29
- * @param {CompoundPathItem} item - the item to uncompound.
- * @returns {Array<PathItem>} - the individual path items.
+ * Returns [dx, dy], given a move of `distance` on `angle`.
+ * @param {Number} angle - the angle of the move.
+ * @param {Number} distance - the distance of the move.
+ * @returns {Array<Number>} - [dx, dy].
  */
-function uncompound(item) {
+function getTranslationAmount(angle, distance) {
 
-    if (!item.hasOwnProperty('pathItems'))
+    var dx = distance * Math.cos(angle),
+        dy = distance * Math.sin(angle);
+
+    return [dx, dy];
+
+};
+
+
+/**
+ * Returns a deep copy of an array of arrays.
+ * @param {Array<Array>} arrays - array of arrays.
+ * @return {Array<Array>}
+ */
+function copyArrays(arrays) {
+
+    var copy = [];
+
+    for (var i = 0; i < arrays.length; i++)
+        copy[i] = Array.isArray(arrays[i])
+            ? copyArrays(arrays[i])
+            : arrays[i];
+
+    return copy;
+
+};
+
+
+/**
+ * Returns the bez's proxy object.
+ * Use this function when wanting to
+ * either initialise, or update the
+ * proxy object.
+ * @author m1b
+ * @version 2023-11-26
+ * @constructor
+ * @param {Object} options
+ * @param {Bez} options.bez - the owner of this proxy.
+ * @param {Number} options.flatness - the flatness of the proxy polygon (default: 20).
+ * @returns {BezProxy}
+ */
+var BezProxy = function (options) {
+
+    options = options || {};
+
+    var self;
+
+    self.bez = options.bez;
+    self.flatness = options.flatness || 20;
+
+    // this is a matrix that will keep track of the
+    // transformations performed on the proxy.
+    self.cumulativeTransformation = Bez.getIdentityMatrix();
+
+    self.polygon = self.bez.getPolygon(flatness, forceUpdate, true)[0];
+
+    // store the polygon as array of convex hulls
+    self.hulls = Bez.decomposePolygonIntoConvexPieces(self.polygon);
+
+};
+
+
+/**
+ * Returns a simplified version of the main Bez,
+ * described in an array of points [x, y].
+ * To do: generate this proxy polygon to have an
+ * optimal balance between accurate representativeness
+ * and minimising number of points.
+ * @returns {Array<Array<Number>>} - array of points.
+ */
+BezProxy.prototype.getPolygon = function getProxyPolygon() {
+
+    var self = this;
+
+    var polygon = self.bez.getPolygon(self.flatness, true, true);
+
+    if (polygon)
+        // we only want the outer path
+        return polygon[0];
+
+};
+
+
+Bez.prototype.applyProxyTransformation = function applyProxyTransformation() {
+
+    var self = this,
+        proxy = self.proxy,
+        isSelected = self.pageItem && self.pageItem.selected == true;
+
+    if (
+        proxy == undefined
+        || proxy.cumulativeTransformation == undefined
+    )
         return;
 
-    var pathItems = [],
-        container = item.parent;
+    var paths = Bez.transformPaths({ paths: self.paths, matrix: proxy.cumulativeTransformation });
 
-    for (var i = item.pathItems.length - 1; i >= 0; i--) {
-        pathItems[i] = item.pathItems[i];
-        pathItems[i].move(container, ElementPlacement.PLACEATBEGINNING);
+    if (paths == undefined)
+        return;
+
+    self.paths = paths;
+    self.draw({ select: isSelected });
+
+};
+
+
+/**
+ * Returns a 3x3 identity matrix.
+ * @returns {Array<Array<Number>>}
+ */
+Bez.getIdentityMatrix = function getIdentityMatrix() {
+
+    return [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+    ];
+
+};
+
+
+/**
+ * Returns a matrix to translate by `dx` x `dy`.
+ * @param {Number} dx - the horizontal translation amount.
+ * @param {Number} dy - the vertical translation amount.
+ * @returns {Array<Number>} - 3x3 matrix.
+ */
+Bez.getTranslationMatrix = function getTranslationMatrix(dx, dy) {
+
+    return [
+        [1, 0, dx],
+        [0, 1, dy],
+        [0, 0, 1],
+    ];
+
+};
+
+
+/**
+ * Returns a matrix to scale by `sx` x `sy`.
+ * @param {Number} sx - the horizontal scale factor [0..1].
+ * @param {Number} sy - the vertical scale factor [0..1].
+ * @returns {Array<Number>} - 3x3 matrix.
+ */
+Bez.getScaleMatrix = function getScaleMatrix(sx, sy) {
+
+    return [
+        [sx, 0, 0],
+        [0, sy, 0],
+        [0, 0, 1],
+    ];
+
+};
+
+
+/**
+ * Returns a matrix with `angle` rotation.
+ * @param {Number} angle - the rotation amount.
+ * @param {Boolean} angleIsDegrees - whether the angle unit is degrees (default: radians).
+ * @returns {Array<Number>} - 3x3 matrix.
+ */
+Bez.getRotationMatrix = function getRotationMatrix(angle, angleIsDegrees) {
+
+    if (angleIsDegrees)
+        angle *= (Math.PI / 180);
+
+    return [
+        [Math.cos(-angle), -Math.sin(-angle), 0],
+        [Math.sin(-angle), Math.cos(-angle), 0],
+        [0, 0, 1],
+    ];
+
+};
+
+
+/**
+ * Multiply two 3x3 matrices.
+ * @param {Array<Number>} m1 - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
+ * @param {Array<Number>} m2 - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
+ * @returns {Array<Number>}
+ */
+Bez.multiplyMatrices = function multiplyMatrices(m1, m2) {
+
+    var rowCount1 = m1.length,
+        rowCount2 = m2.length,
+        columnCount1 = m1[0].length,
+        columnCount2 = m2[0].length,
+        m = new Array(rowCount1);
+
+    if (
+        rowCount1 !== 3
+        || columnCount1 !== 3
+    )
+        throw Error('Bez.multiplyMatrices: bad `m1` supplied.');
+
+    if (
+        rowCount2 !== 3
+        || columnCount2 !== 3
+    )
+        throw Error('Bez.multiplyMatrices: bad `m2` supplied.');
+
+    for (var r = 0; r < rowCount1; ++r) {
+
+        // initialize the current row
+        m[r] = new Array(columnCount2);
+        for (var c = 0; c < columnCount2; ++c) {
+
+            // initialize the current cell
+            m[r][c] = 0;
+            for (var i = 0; i < columnCount1; ++i)
+                m[r][c] += m1[r][i] * m2[i][c];
+
+        }
+
     }
 
-    return pathItems;
+    return m;
+
+};
+
+
+/**
+ * Returns an Illustrator Matrix object
+ * given a 3x3 array matrix.
+ * Illustrator rotation goes opposite
+ * to the raw matrices, so we flip the
+ * signs of both B and C to match.
+ * @param {Array<Array<Number>>} matrix - the matrix to convert.
+ * @returns {Matrix}
+ */
+Bez.getIllustratorMatrix = function getIllustratorMatrix(matrix) {
+
+    var m = app.getIdentityMatrix();
+    m.mValueA = matrix[0][0];
+    m.mValueB = -matrix[0][1];
+    m.mValueC = -matrix[1][0];
+    m.mValueD = matrix[1][1];
+    m.mValueTX = matrix[0][2];
+    m.mValueTY = matrix[1][2];
+
+    return m;
+
+};
+
+
+/**
+ * Transformation a point with a matrix.
+ * @param {Array<Number>} point - a point [x, y].
+ * @param {Array<Array<Number>>} matrix - a 3x3 matrix.
+ * @returns {Array<Number>} - [tx, ty].
+ */
+Bez.transformPoint = function transformPoint(point, matrix) {
+
+    // add 1 to the point for homogeneity with the matrix
+    var p = Bez.multiplyMatrixVector(matrix, [point[0], point[1], 1]);
+
+    return [p[0], p[1]];
+
+};
+
+
+/**
+ * Transforms the Bez with a 3x3 matrix.
+ * @param {Object} options
+ * @param {Array<Array<Number>>} options.matrix - a 3x3 matrix.
+ */
+Bez.prototype.transform = function bezTransform(options) {
+
+    var self = this,
+        isSelected = self.pageItem && self.pageItem.selected == true;
+
+    self.paths = Bez.transformPaths({
+        paths: self.paths,
+        matrix: options.matrix,
+    });
+
+    self.updatePageItem();
+    self.draw({ select: isSelected });
+
+};
+
+/**
+ * Transforms a path/points array
+ * using a 3x3 matrix.
+ * @param {Object} options
+ * @param {Array<Array<BezPoint>>} options.paths - an array of path arrays.
+ * @param {Array<Array<Number>>} options.matrix - a 3x3 matrix.
+ * @returns {Array<Array<BezPoint>>}
+ */
+Bez.transformPaths = function transformPaths(options) {
+
+    options = options || {};
+
+    var paths = Bez.copyPaths(options.paths),
+        m = options.matrix;
+
+    pathsLoop:
+    for (var i = 0, l = paths.length; i < l; i++) {
+
+        var points = paths[i];
+
+        pointsLoop:
+        for (var j = 0, len = points.length; j < len; j++)
+            points[j].transform(m);
+
+    }
+
+    return paths;
+
+};
+
+
+BezPoint.prototype.transform = function transformBezPoint(matrix) {
+
+    var self = this;
+    self.anchor = Bez.transformPoint(self.anchor, matrix);
+    self.leftDirection = Bez.transformPoint(self.leftDirection, matrix);
+    self.rightDirection = Bez.transformPoint(self.rightDirection, matrix);
+
+};
+
+
+// /**
+//  * Apply a transformation to points.
+//  * @param { * } points - the point to transform [x, y].
+//  * @param {Array<Number>} transformationMatrix - a transformation matrix [a,b,c,d,e,f]
+//  */
+// function applyTransform(points, transformationMatrix) {
+
+//     var transformedPoints = [];
+
+//     for (var i = 0; i < points.length; i++) {
+
+//         var point = points[i],
+//             // Add a homogeneous coordinate (1) to the point for matrix multiplication
+//             homogeneousPoint = [point[0], point[1], 1],
+//             // Multiply the point by the transformation matrix
+//             transformedPoint = multiplyMatrixVector(transformationMatrix, homogeneousPoint);
+
+//         // store the transformed point (without the homogeneous coordinate)
+//         transformedPoints.push([transformedPoint[0], transformedPoint[1]]);
+
+//     }
+
+//     return transformedPoints;
+
+// };
+
+
+/**
+ * Multiplies a matrix by a vector,
+ * returning the resulting vector.
+ * Note: will throw error if the vector
+ * length is less than the number of
+ * columns in the matrix.
+ * @param {Array<Array<Number>>} matrix - the matrix to multiply.
+ * @param {Array<Number>} vector - the vector to multiple.
+ * @returns {Array<Number>}
+ */
+Bez.multiplyMatrixVector = function multiplyMatrixVector(matrix, vector) {
+
+    var result = [];
+    for (var i = 0; i < matrix.length; i++) {
+
+        result[i] = 0;
+        for (var j = 0; j < vector.length; j++)
+            result[i] += matrix[i][j] * vector[j];
+
+    }
+
+    return result;
+
+};
+
+
+/**
+ * Returns an inverted matrix for a given matrix,
+ * or null if the determinant is zero.
+ * @param {Array<Array<Number>>} matrix - the matrix to invert.
+ * @returns {Array<Array<Number>>}
+ */
+Bez.invertMatrix3x3 = function invertMatrix3x3(matrix) {
+
+    var m = matrix,
+        determinant =
+            m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2])
+            - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+            + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+
+    if (determinant === 0)
+        // not invertible!
+        return null;
+
+    var inverse = [
+        [(m[1][1] * m[2][2] - m[2][1] * m[1][2]) / determinant, -(m[0][1] * m[2][2] - m[0][2] * m[2][1]) / determinant, (m[0][1] * m[1][2] - m[0][2] * m[1][1]) / determinant],
+        [-(m[1][0] * m[2][2] - m[1][2] * m[2][0]) / determinant, (m[0][0] * m[2][2] - m[0][2] * m[2][0]) / determinant, -(m[0][0] * m[1][2] - m[0][2] * m[1][0]) / determinant],
+        [(m[1][0] * m[2][1] - m[1][1] * m[2][0]) / determinant, -(m[0][0] * m[2][1] - m[0][1] * m[2][0]) / determinant, (m[0][0] * m[1][1] - m[0][1] * m[1][0]) / determinant]
+    ];
+
+    return [inverse[0], inverse[1]];
 
 };
