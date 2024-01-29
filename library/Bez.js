@@ -1,3 +1,10 @@
+if ('undefined' === typeof Mat)
+    $.evalFile(File($.fileName).parent + 'Mat.js');
+
+if ('undefined' === typeof Pol)
+    $.evalFile(File($.fileName).parent + 'Pol.js');
+
+
 /**
  * The types of scaling.
  * @memberof Bez
@@ -492,6 +499,9 @@ Bez.prototype.consumePageItem = function consumePageItem(pageItem) {
 
     // store points
     for (var i = 0; i < self.pathItems.length; i++) {
+
+        if (0 === self.pathItems[i].pathPoints.length)
+            continue;
 
         self.paths[i] = [];
         self.pathsClosed[i] = self.pathItems[i].closed == true;
@@ -1232,75 +1242,6 @@ Bez.uncompound = function uncompound(item) {
 
 
 /**
- * Returns the convex hull of a polygon.
- * @version 2023-11-05
- * @param {Number} [flatness] - the average length of lines when approximating curved segments (default: 2).
- * @param {Boolean} [forceUpdate] - whether to re-calculate the convex hull even if it already exists (default: false).
- * @returns {Array<point>} - the convex hull.
- */
-Bez.prototype.getConvexHull = function getConvexHull(flatness, forceUpdate) {
-
-    var self = this,
-        convexHull = self.convexHull,
-        polygon = self.getPolygon(flatness, forceUpdate),
-        hull = [];
-
-    if (
-        forceUpdate !== true
-        && convexHull != undefined
-    )
-        // use stored value
-        return self.convexHull;
-
-    // we only want the outer path
-    polygon = polygon[0];
-
-    if (polygon.length < 4) {
-        // triangle is already convex
-        self.convexHull = polygon;
-        return polygon;
-    }
-
-    // Helper function to determine the orientation of three points (p, q, r)
-    function orientation(p, q, r) {
-        var val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
-        if (val === 0) return 0; // Collinear
-        return val > 0 ? 1 : 2; // Clockwise or counterclockwise
-    }
-
-    var n = polygon.length;
-    var hull = [];
-    var l = 0;
-
-    // Find the leftmost point
-    for (var i = 1; i < n; i++) {
-        if (polygon[i][0] < polygon[l][0]) {
-            l = i;
-        }
-    }
-
-    var p = l;
-    var q;
-    do {
-        hull.push(polygon[p]);
-
-        q = (p + 1) % n;
-        for (var i = 0; i < n; i++) {
-            // If i is more counterclockwise than current q, update q
-            if (orientation(polygon[p], polygon[i], polygon[q]) === 2) {
-                q = i;
-            }
-        }
-
-        p = q; // Set p as q for the next iteration
-    } while (p !== l);
-
-    return hull;
-
-};
-
-
-/**
  * Returns the rotation amount in degrees
  * that the item needs to be rotated such
  * that it has a minimal bounding box area.
@@ -1560,9 +1501,7 @@ Bez.prototype.getPolygon = function getPolygon(options) {
     if (paths.length == 0)
         throw Error('Bez.prototype.getPolygon: no paths returned.');
 
-    // $.writeln('Bez.prototype.getPolygon: paths[0].length = ' + paths[0].length);
-
-    // now convert the BezPoints to an simple array
+    // now convert the BezPoints to a simple array
     var polyPaths = [];
 
     for (var i = 0; i < paths.length; i++) {
@@ -1573,9 +1512,9 @@ Bez.prototype.getPolygon = function getPolygon(options) {
             path.points[j] = [paths[i][j].anchor[0], paths[i][j].anchor[1]];
 
         if (simplify === true)
-            path.points = Bez.simplifyPolygon(path.points, flatness / 10);
+            path.points = Pol.simplifyPolygon(path.points, flatness / 10);
 
-        path.area = getPolygonArea(path.points);
+        path.area = Pol.getPolygonArea(path.points);
 
         polyPaths.push(path);
 
@@ -1600,270 +1539,6 @@ Bez.prototype.getPolygon = function getPolygon(options) {
     self.polygonFlatness = flatness;
 
     return polygon;
-
-};
-
-
-/**
- * Returns true when the polygons overlap.
- * @version 2023-11-26
- * @param {polygon} poly1 - an array of [x, y] points.
- * @param {polygon} poly2 - an array of [x, y] points.
- * @returns {Boolean}
- */
-Bez.doPolygonsOverlap = function doPolygonsOverlap(poly1, poly2) {
-
-    // decompose into convex pieces
-    var hulls1 = Bez.decomposePolygonIntoConvexPieces(poly1),
-        hulls2 = Bez.decomposePolygonIntoConvexPieces(poly2);
-
-    for (var i = 0; i < hulls1.length; i++)
-        for (var j = 0; j < hulls2.length; j++)
-            if (Bez.doPolygonsOverlapAsConvexHulls(hulls1[i], hulls2[j]))
-                return true;
-
-    return false;
-
-};
-
-
-/**
- * Returns true when the polygons'
- * convex hulls overlap.
- * @author ChatGPT 3.5 and m1b
- * @version 2023-11-26
- * @param {polygon} poly1 - an array of [x, y] points.
- * @param {polygon} poly2 - an array of [x, y] points.
- * @returns {Boolean}
- */
-Bez.doPolygonsOverlapAsConvexHulls = function doPolygonsOverlapAsConvexHulls(poly1, poly2) {
-
-    var axesToCheck = axes(poly1).concat(axes(poly2));
-
-    for (var k = 0; k < axesToCheck.length; k++) {
-        var axis = axesToCheck[k];
-        if (!overlapOnAxis(poly1, poly2, axis))
-            // separating axis found
-            return false;
-    }
-
-    // no separating axis found, polygons overlap
-    return true;
-
-
-    /**
-     * Returns array of vectors, where each vector is
-     * a pair of coordinates representing a perpendicular
-     * axis to one of the edges of the input polygon.
-     * @param {Array<point>} poly - array of [x, y] points.
-     * @returns {Array<point>}
-     */
-    function axes(poly) {
-
-        var result = [];
-
-        for (var i = 0; i < poly.length; i++) {
-            var point = poly[i],
-                nextPoint = poly[(i + 1) % poly.length],
-                edge = [nextPoint[0] - point[0], nextPoint[1] - point[1]];
-            result.push([-edge[1], edge[0]]);
-        }
-
-        return result;
-
-    };
-
-    /**
-     * Returns minimum and maximum values.
-     * @param {Array<Number>} values - the numbers to process.
-     * @returns {min: max:}
-     */
-    function getMinMax(values) {
-
-        var min = values[0],
-            max = values[0];
-
-        for (var i = 1; i < values.length; i++) {
-
-            var value = values[i];
-
-            if (value < min)
-                min = value;
-
-            else if (value > max)
-                max = value;
-        }
-
-        return { min: min, max: max };
-
-    };
-
-    /**
-     * Returns true if the polygons overlap on an axis.
-     * @param {polygon} poly1 - a polygon to test.
-     * @param {polygon} poly2 - a polygon to test.
-     * @param {Array<Number>} axis - the axis vector.
-     * @returns {Boolean}
-     */
-    function overlapOnAxis(poly1, poly2, axis) {
-
-        var proj1 = [];
-        var proj2 = [];
-
-        for (var i = 0; i < poly1.length; i++)
-            proj1[i] = poly1[i][0] * axis[0] + poly1[i][1] * axis[1];
-
-        for (var j = 0; j < poly2.length; j++)
-            proj2[j] = poly2[j][0] * axis[0] + poly2[j][1] * axis[1];
-
-        var minMax1 = getMinMax(proj1);
-        var minMax2 = getMinMax(proj2);
-
-        return (
-            minMax1.min <= minMax2.max && minMax1.max >= minMax2.min
-        );
-
-    }
-
-};
-
-
-/**
- * Decomposes a non-convex polygon into convex
- * sub-polygons using the ear clipping method.
- * @author ChatGPT and m1b
- * @version 2023-11-26
- * @param {Array<point>} poly - an array of points.
- * @returns {Array<Array<point>>} - array of convex polygons.
- */
-Bez.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces(poly) {
-
-    var result = [];
-
-    while (poly.length >= 3) {
-
-        var ear = findEar(poly);
-
-        if (!ear)
-            // The polygon is not simple or convex
-            return null;
-
-        result.push(ear);
-        removeEar(poly, ear);
-
-    }
-
-    return result;
-
-
-    function isEar(poly, ear) {
-
-        var p1 = ear[0],
-            p2 = ear[1],
-            p3 = ear[2];
-
-        for (var i = 0; i < poly.length; i++) {
-
-            if (
-                poly[i] !== p1
-                && poly[i] !== p2
-                && poly[i] !== p3
-                && isPointInTriangle(poly[i], p1, p2, p3)
-            )
-                return false;
-
-        }
-
-        return true;
-
-    };
-
-    function isPointInTriangle(point, p1, p2, p3) {
-
-        var area = 0.5 * (-p2[1] * p3[0] + p1[1] * (-p2[0] + p3[0]) + p1[0] * (p2[1] - p3[1]) + p2[0] * p3[1]),
-            s = 1 / (2 * area) * (p1[1] * p3[0] - p1[0] * p3[1] + (p3[1] - p1[1]) * point[0] + (p1[0] - p3[0]) * point[1]),
-            t = 1 / (2 * area) * (p1[0] * p2[1] - p1[1] * p2[0] + (p1[1] - p2[1]) * point[0] + (p2[0] - p1[0]) * point[1]);
-
-        return s > 0 && t > 0 && 1 - s - t > 0;
-
-    };
-
-    function findEar(poly) {
-
-        for (var i = 0; i < poly.length; i++) {
-
-            var p1 = poly[i],
-                p2 = poly[(i + 1) % poly.length],
-                p3 = poly[(i + 2) % poly.length],
-                ear = [p1, p2, p3];
-
-            if (isEar(poly, ear))
-                return ear;
-
-        }
-
-        return null;
-
-    };
-
-    function removeEar(poly, ear) {
-
-        var index = indexOf(ear[1], poly);
-
-        if (index !== -1)
-            poly.splice(index, 1);
-
-    };
-
-};
-
-
-/**
- * Returns simplified polygon, where points
- * are removed if considered collinear.
- * @param {polygon} poly - array of [x, y] points.
- * @param {Number} tolerance - tolerance value; higher values tend to remove more points.
- * @returns {polygon|Array<polygon>}
- */
-Bez.simplifyPolygon = function simplifyPolygon(poly, tolerance) {
-
-    var simplifiedPolygon = [];
-
-    // handle multiple path polygons
-    if (poly[0][0].constructor.name == 'Array') {
-
-        for (var i = 0; i < poly.length; i++)
-            simplifiedPolygon.push(simplifyPolygon(poly[i]));
-
-        return simplifiedPolygon;
-
-    }
-
-    // add the first point
-    simplifiedPolygon.push(poly[0]);
-
-    // add non-collinear points
-    for (var i = 1; i < poly.length - 1; i++)
-        if (!isCollinear(poly[i - 1], poly[i], poly[i + 1], tolerance))
-            simplifiedPolygon.push(poly[i]);
-
-    // add the last point
-    simplifiedPolygon.push(poly[poly.length - 1]);
-
-    return simplifiedPolygon;
-
-    /**
-     * Returns true when the points fall along
-     * a line, given `tolerance`.
-     * @param {point} p1 - point [x, y].
-     * @param {point} p2 - point [x, y].
-     * @param {point} p3 - point [x, y].
-     * @returns {Boolean}
-     */
-    function isCollinear(p1, p2, p3, tolerance) {
-        var crossProduct = (p2[1] - p1[1]) * (p3[0] - p2[0]) - (p2[0] - p1[0]) * (p3[1] - p2[1]);
-        return Math.abs(crossProduct) < tolerance;
-    };
 
 };
 
@@ -2011,21 +1686,8 @@ Bez.prototype.setFirstPoint = function reverse(options) {
         || isNaN(Number(pathIndex))
         || pointIndex == undefined
         || isNaN(Number(pointIndex))
-    ) {
-
-        var point = self.getClosestPointTo(options);
-        var indices = self.getIndicesOfPoint(point);
-
-        if (
-            indices == undefined
-            || indices.length != 2
-        )
-            throw Error('Bez.prototype.setFirstPoint failed: could not determine first point.');
-
-        pathIndex = indices[0];
-        pointIndex = indices[1];
-
-    }
+    )
+        throw Error('Bez.prototype.setFirstPoint failed: could not determine first point.');
 
     // reorder the points in path
     var points = self.paths[pathIndex];
@@ -5724,27 +5386,6 @@ function round(nums, places, floor) {
 };
 
 
-function getPolygonArea(points) {
-
-    var area = 0;
-
-    for (var i = 0, l = points.length; i < l; i++) {
-
-        var addX = points[i][0],
-            addY = points[i == points.length - 1 ? 0 : i + 1][1],
-            subX = points[i == points.length - 1 ? 0 : i + 1][0],
-            subY = points[i][1];
-
-        area += (addX * addY * 0.5);
-        area -= (subX * subY * 0.5);
-
-    }
-
-    return Math.abs(area);
-
-};
-
-
 /**
  * Returns angle ABC in degrees.
  * @param {Array<Number>} a - point [x, y].
@@ -5759,7 +5400,26 @@ function getAngleABC(a, b, c) {
         dot = (ab[0] * cb[0] + ab[1] * cb[1]),
         cross = (ab[0] * cb[1] - ab[1] * cb[0]),
         alpha = Math.atan2(cross, dot);
+
     return alpha * 180 / Math.PI;
+
+};
+
+
+/**
+ * Returns the square distance between two points.
+ * @author m1b
+ * @version 2022-07-25
+ * @param {Array<Number>} p1 - a point array [x, y].
+ * @param {Array<Number>} p2 - a point array [x, y].
+ * @returns {Number} - distance in points.
+ */
+function squareDistanceBetweenPoints(p1, p2) {
+
+    var a = p1[0] - p2[0],
+        b = p1[1] - p2[1];
+
+    return a * a + b * b;
 
 };
 
@@ -5774,8 +5434,9 @@ function getAngleABC(a, b, c) {
  */
 function distanceBetweenPoints(p1, p2) {
 
-    var a = p1[0] - p2[0];
-    var b = p1[1] - p2[1];
+    var a = p1[0] - p2[0],
+        b = p1[1] - p2[1];
+
     return Math.sqrt(a * a + b * b);
 
 };
@@ -6106,22 +5767,6 @@ function indexOf(obj, arr) {
 
 
 /**
- * Returns [dx, dy], given a move of `distance` on `angle`.
- * @param {Number} angle - the angle of the move.
- * @param {Number} distance - the distance of the move.
- * @returns {Array<Number>} - [dx, dy].
- */
-function getTranslationAmount(angle, distance) {
-
-    var dx = distance * Math.cos(angle),
-        dy = distance * Math.sin(angle);
-
-    return [dx, dy];
-
-};
-
-
-/**
  * Returns a deep copy of an array of arrays.
  * @param {Array<Array>} arrays - array of arrays.
  * @return {Array<Array>}
@@ -6141,10 +5786,8 @@ function copyArrays(arrays) {
 
 
 /**
- * Returns the bez's proxy object.
- * Use this function when wanting to
- * either initialise, or update the
- * proxy object.
+ * A lightweight object for performing
+ * transformations and various tests.
  * @author m1b
  * @version 2023-11-26
  * @constructor
@@ -6207,310 +5850,12 @@ Bez.prototype.applyProxyTransformation = function applyProxyTransformation() {
     )
         return;
 
-    var paths = Bez.transformPaths({ paths: self.paths, matrix: proxy.cumulativeTransformation });
+    var paths = Mat.transformPaths({ paths: self.paths, matrix: proxy.cumulativeTransformation });
 
     if (paths == undefined)
         return;
 
     self.paths = paths;
     self.draw({ select: isSelected });
-
-};
-
-
-/**
- * Returns a 3x3 identity matrix.
- * @returns {Array<Array<Number>>}
- */
-Bez.getIdentityMatrix = function getIdentityMatrix() {
-
-    return [
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-    ];
-
-};
-
-
-/**
- * Returns a matrix to translate by `dx` x `dy`.
- * @param {Number} dx - the horizontal translation amount.
- * @param {Number} dy - the vertical translation amount.
- * @returns {Array<Number>} - 3x3 matrix.
- */
-Bez.getTranslationMatrix = function getTranslationMatrix(dx, dy) {
-
-    return [
-        [1, 0, dx],
-        [0, 1, dy],
-        [0, 0, 1],
-    ];
-
-};
-
-
-/**
- * Returns a matrix to scale by `sx` x `sy`.
- * @param {Number} sx - the horizontal scale factor [0..1].
- * @param {Number} sy - the vertical scale factor [0..1].
- * @returns {Array<Number>} - 3x3 matrix.
- */
-Bez.getScaleMatrix = function getScaleMatrix(sx, sy) {
-
-    return [
-        [sx, 0, 0],
-        [0, sy, 0],
-        [0, 0, 1],
-    ];
-
-};
-
-
-/**
- * Returns a matrix with `angle` rotation.
- * @param {Number} angle - the rotation amount.
- * @param {Boolean} angleIsDegrees - whether the angle unit is degrees (default: radians).
- * @returns {Array<Number>} - 3x3 matrix.
- */
-Bez.getRotationMatrix = function getRotationMatrix(angle, angleIsDegrees) {
-
-    if (angleIsDegrees)
-        angle *= (Math.PI / 180);
-
-    return [
-        [Math.cos(-angle), -Math.sin(-angle), 0],
-        [Math.sin(-angle), Math.cos(-angle), 0],
-        [0, 0, 1],
-    ];
-
-};
-
-
-/**
- * Multiply two 3x3 matrices.
- * @param {Array<Number>} m1 - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
- * @param {Array<Number>} m2 - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
- * @returns {Array<Number>}
- */
-Bez.multiplyMatrices = function multiplyMatrices(m1, m2) {
-
-    var rowCount1 = m1.length,
-        rowCount2 = m2.length,
-        columnCount1 = m1[0].length,
-        columnCount2 = m2[0].length,
-        m = new Array(rowCount1);
-
-    if (
-        rowCount1 !== 3
-        || columnCount1 !== 3
-    )
-        throw Error('Bez.multiplyMatrices: bad `m1` supplied.');
-
-    if (
-        rowCount2 !== 3
-        || columnCount2 !== 3
-    )
-        throw Error('Bez.multiplyMatrices: bad `m2` supplied.');
-
-    for (var r = 0; r < rowCount1; ++r) {
-
-        // initialize the current row
-        m[r] = new Array(columnCount2);
-        for (var c = 0; c < columnCount2; ++c) {
-
-            // initialize the current cell
-            m[r][c] = 0;
-            for (var i = 0; i < columnCount1; ++i)
-                m[r][c] += m1[r][i] * m2[i][c];
-
-        }
-
-    }
-
-    return m;
-
-};
-
-
-/**
- * Returns an Illustrator Matrix object
- * given a 3x3 array matrix.
- * Illustrator rotation goes opposite
- * to the raw matrices, so we flip the
- * signs of both B and C to match.
- * @param {Array<Array<Number>>} matrix - the matrix to convert.
- * @returns {Matrix}
- */
-Bez.getIllustratorMatrix = function getIllustratorMatrix(matrix) {
-
-    var m = app.getIdentityMatrix();
-    m.mValueA = matrix[0][0];
-    m.mValueB = -matrix[0][1];
-    m.mValueC = -matrix[1][0];
-    m.mValueD = matrix[1][1];
-    m.mValueTX = matrix[0][2];
-    m.mValueTY = matrix[1][2];
-
-    return m;
-
-};
-
-
-/**
- * Transformation a point with a matrix.
- * @param {Array<Number>} point - a point [x, y].
- * @param {Array<Array<Number>>} matrix - a 3x3 matrix.
- * @returns {Array<Number>} - [tx, ty].
- */
-Bez.transformPoint = function transformPoint(point, matrix) {
-
-    // add 1 to the point for homogeneity with the matrix
-    var p = Bez.multiplyMatrixVector(matrix, [point[0], point[1], 1]);
-
-    return [p[0], p[1]];
-
-};
-
-
-/**
- * Transforms the Bez with a 3x3 matrix.
- * @param {Object} options
- * @param {Array<Array<Number>>} options.matrix - a 3x3 matrix.
- */
-Bez.prototype.transform = function bezTransform(options) {
-
-    var self = this,
-        isSelected = self.pageItem && self.pageItem.selected == true;
-
-    self.paths = Bez.transformPaths({
-        paths: self.paths,
-        matrix: options.matrix,
-    });
-
-    self.updatePageItem();
-    self.draw({ select: isSelected });
-
-};
-
-/**
- * Transforms a path/points array
- * using a 3x3 matrix.
- * @param {Object} options
- * @param {Array<Array<BezPoint>>} options.paths - an array of path arrays.
- * @param {Array<Array<Number>>} options.matrix - a 3x3 matrix.
- * @returns {Array<Array<BezPoint>>}
- */
-Bez.transformPaths = function transformPaths(options) {
-
-    options = options || {};
-
-    var paths = Bez.copyPaths(options.paths),
-        m = options.matrix;
-
-    pathsLoop:
-    for (var i = 0, l = paths.length; i < l; i++) {
-
-        var points = paths[i];
-
-        pointsLoop:
-        for (var j = 0, len = points.length; j < len; j++)
-            points[j].transform(m);
-
-    }
-
-    return paths;
-
-};
-
-
-BezPoint.prototype.transform = function transformBezPoint(matrix) {
-
-    var self = this;
-    self.anchor = Bez.transformPoint(self.anchor, matrix);
-    self.leftDirection = Bez.transformPoint(self.leftDirection, matrix);
-    self.rightDirection = Bez.transformPoint(self.rightDirection, matrix);
-
-};
-
-
-// /**
-//  * Apply a transformation to points.
-//  * @param { * } points - the point to transform [x, y].
-//  * @param {Array<Number>} transformationMatrix - a transformation matrix [a,b,c,d,e,f]
-//  */
-// function applyTransform(points, transformationMatrix) {
-
-//     var transformedPoints = [];
-
-//     for (var i = 0; i < points.length; i++) {
-
-//         var point = points[i],
-//             // Add a homogeneous coordinate (1) to the point for matrix multiplication
-//             homogeneousPoint = [point[0], point[1], 1],
-//             // Multiply the point by the transformation matrix
-//             transformedPoint = multiplyMatrixVector(transformationMatrix, homogeneousPoint);
-
-//         // store the transformed point (without the homogeneous coordinate)
-//         transformedPoints.push([transformedPoint[0], transformedPoint[1]]);
-
-//     }
-
-//     return transformedPoints;
-
-// };
-
-
-/**
- * Multiplies a matrix by a vector,
- * returning the resulting vector.
- * Note: will throw error if the vector
- * length is less than the number of
- * columns in the matrix.
- * @param {Array<Array<Number>>} matrix - the matrix to multiply.
- * @param {Array<Number>} vector - the vector to multiple.
- * @returns {Array<Number>}
- */
-Bez.multiplyMatrixVector = function multiplyMatrixVector(matrix, vector) {
-
-    var result = [];
-    for (var i = 0; i < matrix.length; i++) {
-
-        result[i] = 0;
-        for (var j = 0; j < vector.length; j++)
-            result[i] += matrix[i][j] * vector[j];
-
-    }
-
-    return result;
-
-};
-
-
-/**
- * Returns an inverted matrix for a given matrix,
- * or null if the determinant is zero.
- * @param {Array<Array<Number>>} matrix - the matrix to invert.
- * @returns {Array<Array<Number>>}
- */
-Bez.invertMatrix3x3 = function invertMatrix3x3(matrix) {
-
-    var m = matrix,
-        determinant =
-            m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2])
-            - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
-            + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
-
-    if (determinant === 0)
-        // not invertible!
-        return null;
-
-    var inverse = [
-        [(m[1][1] * m[2][2] - m[2][1] * m[1][2]) / determinant, -(m[0][1] * m[2][2] - m[0][2] * m[2][1]) / determinant, (m[0][1] * m[1][2] - m[0][2] * m[1][1]) / determinant],
-        [-(m[1][0] * m[2][2] - m[1][2] * m[2][0]) / determinant, (m[0][0] * m[2][2] - m[0][2] * m[2][0]) / determinant, -(m[0][0] * m[1][2] - m[0][2] * m[1][0]) / determinant],
-        [(m[1][0] * m[2][1] - m[1][1] * m[2][0]) / determinant, -(m[0][0] * m[2][1] - m[0][1] * m[2][0]) / determinant, (m[0][0] * m[1][1] - m[0][1] * m[1][0]) / determinant]
-    ];
-
-    return [inverse[0], inverse[1]];
 
 };
