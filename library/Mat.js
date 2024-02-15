@@ -354,6 +354,6 @@ Mat.getTranslationVector = function getTranslationVector(angle, distance) {
     const tx = distance * Math.cos(radians);
     const ty = distance * Math.sin(radians);
 
-    return [tx, -ty];
+    return [tx, ty];
 
 };

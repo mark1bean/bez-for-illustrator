@@ -3793,7 +3793,11 @@ Bez.prototype.toString = function bezToString() {
 Bez.convertToPaths = function convertToPaths(poly) {
 
     // handle multiple paths
-    if ('Array' === poly[0][0].constructor.name) {
+    if (
+        'Array' === poly[0].constructor.name
+        && poly[0].length > 0
+        && 'Array' === poly[0][0].constructor.name
+    ) {
 
         var paths = [];
 
@@ -3807,7 +3811,8 @@ Bez.convertToPaths = function convertToPaths(poly) {
     var path = [];
 
     for (var i = 0; i < poly.length; i++)
-        path.push(new BezPoint(poly[i]));
+        if (undefined != poly[i])
+            path.push(new BezPoint(poly[i]));
 
     return path;
 
@@ -5776,7 +5781,7 @@ function copyArrays(arrays) {
     var copy = [];
 
     for (var i = 0; i < arrays.length; i++)
-        copy[i] = Array.isArray(arrays[i])
+        copy[i] = 'Array' === arrays[i].constructor.name
             ? copyArrays(arrays[i])
             : arrays[i];
 

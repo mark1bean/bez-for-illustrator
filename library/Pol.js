@@ -2336,16 +2336,16 @@ Pol.getBounds = function getBounds(polygons) {
     var points = concatPaths(polygons);
 
     var left = Infinity,
-        top = Infinity,
+        top = -Infinity,
         right = -Infinity,
-        bottom = -Infinity;
+        bottom = Infinity;
 
     for (var i = 0; i < points.length; i++) {
 
         left = Math.min(left, points[i][0]);
-        top = Math.min(top, points[i][1]);
+        top = Math.max(top, points[i][1]);
         right = Math.max(right, points[i][0]);
-        bottom = Math.max(bottom, points[i][1]);
+        bottom = Math.min(bottom, points[i][1]);
 
     }
 
@@ -2425,24 +2425,6 @@ function angleOfLine(p1, p2, makePositive) {
 
 
 /**
- * Returns the angle, in degrees, between the top-left
- * points of the bounding boxes of `item1` and `item2`.
- * @param {PageItem} item1 - an Illustrator page item.
- * @param {PageItem} item2 - an Illustrator page item.
- * @param {Boolean} makePositive - whether to return a positive angle, eg. -10° == 350° (default: false).
- * @returns {Number}
- */
-function angleBetweenItems(item1, item2, makePositive) {
-
-    var b1 = item1.geometricBounds,
-        b2 = item2.geometricBounds;
-
-    return angleOfLine([b1[0], b1[1]], [b2[0], b2[1]], makePositive);
-
-};
-
-
-/**
  * Concatenates all paths into a single array of points.
  * @version 2024-01-27
  * @param {Array<Array<Array<point>>>} paths - the paths to concatenate.
@@ -2466,5 +2448,333 @@ function concatPaths(paths) {
     }
 
     return result;
+
+};
+
+
+/**
+ * Compares pairs of points, and returns the minimum distance between any pair.
+ * If either point is undefined, that pair will be ignored.
+ * @param {Array<point>} points1 - an array of [x,y] points.
+ * @param {Array<point>} points2 - an array of [x,y] points.
+ * @returns {Number}
+ */
+function getMinDistanceBetweenMatchedPoints(points1, points2) {
+
+    var len = Math.min(points1.length, points2.length),
+        minSquareDistance = Infinity;
+
+    for (var i = 0, squareDistance; i < len; i++) {
+
+        if (
+            undefined == points1[i]
+            || undefined == points2[i]
+        )
+            // ignore unmatched points
+            continue;
+
+        // we compare the squared distances, for efficiency
+        squareDistance = Math.pow(points2[i][0] - points1[i][0], 2) + Math.pow(points2[i][1] - points1[i][1], 2);
+
+        if (minSquareDistance > squareDistance)
+            minSquareDistance = squareDistance;
+
+    }
+
+    // return the actual distance
+    return Math.sqrt(minSquareDistance);
+
+};
+
+
+
+
+/**
+ * Given a path, will return all points
+ * intersecting the "slice" at `targetY`.
+ * @param {Array<Array<point>>} paths - paths/points array.
+ * @param {Number} targetY - the target y-axis "slice".
+ * @param {Number} [tolerance] - how near a value must be to be considered the same value (default: 0.1).
+ * @returns {?Array<point>}
+ */
+function findIntersectionPoints(paths, targetY, tolerance) {
+
+    if (undefined == tolerance)
+        tolerance = 0.1;
+
+    if (
+        'Array' !== paths.constructor.name
+        || 0 === paths.length
+        || 'Array' !== paths[0].constructor.name
+        || 0 === paths[0].length
+        || 'Array' !== paths[0][0].constructor.name
+        || 0 === paths[0][0].length
+        || 'Number' !== paths[0][0][0].constructor.name
+    )
+        throw Error('findIntersectionPoints: bad `paths` supplied.');
+
+    // a single path
+    if ('Number' === paths[0][0].constructor.name)
+        paths = [paths];
+
+    var found = [];
+
+    for (var i = 0, points; i < paths.length; i++) {
+
+        points = paths[i];
+
+        for (var j = 0, x, x1, x2, y1, y2; j < points.length - 1; j++) {
+
+            x1 = points[j][0];
+            y1 = points[j][1];
+            x2 = points[j + 1][0];
+            y2 = points[j + 1][1];
+
+            // $.writeln('> Line: ' + [x1, y1] + ' to ' + [x2, y2]);
+
+
+            if (
+                Math.min(y1, y2) > targetY
+                || targetY > Math.max(y1, y2)
+            )
+                // line's Y coordinates are out of range of targetY
+                continue;
+
+            // avoid division by zero
+            if (y1 !== y2) {
+
+                // linear interpolation
+                x = x1 + (targetY - y1) * (x2 - x1) / (y2 - y1);
+                appendIfNotLast(found, [x, targetY]);
+                continue;
+
+            }
+
+            else if (y1 === targetY) {
+
+                // the line is horizontal and intersects with the targetY
+                // add both points
+                appendIfNotLast(found, [x1, y1]);
+                appendIfNotLast(found, [x2, y1]);
+                continue;
+
+            }
+
+        }
+
+    }
+
+    if (found.length > 0)
+        return found;
+
+    /**
+     * Adds point to points array IF it isn't
+     * identical to the last point added.
+     * @param {Array} arr - an array.
+     * @param {Array<Number>} point - a point [x,y].
+     */
+    function appendIfNotLast(arr, point) {
+
+        if (undefined == point)
+            return;
+
+        else if (
+            0 === arr.length
+            || arr[arr.length - 1][0] !== point[0]
+            || arr[arr.length - 1][1] !== point[1]
+        )
+            arr.push(point);
+
+    };
+
+};
+
+
+/**
+ * Returns the distance required to move
+ * `pol2` left (ie. 180°) until it touches `pol1`.
+ *
+ * IMPORTANT:
+ * You must pre-rotate pol1 and pol2
+ * so that pol2 is right of pol1.
+ *
+ * @author m1b
+ * @version 2024-01-18
+ * @param {Object} options
+ * @param {Document} options.doc - an Illustrator Document.
+ * @param {Pol} options.pol1 - the left polygon.
+ * @param {Pol} options.pol2 - the right polygon.
+ * @param {Boolean} [options.ignoreOverlappingItems] - whether to ignore cases where two items overlap (when there is negative distance between them) (default: false).
+ * @param {Boolean} [options.drawBoundaryLines] - whether to draw the boundary lines (default: false).
+ * @returns {?Number} - the distance between the two polygons.
+ */
+function getDistanceApart(options) {
+
+    options = options || {};
+
+    var pol1 = options.pol1,
+        pol2 = options.pol2,
+        ignoreOverlappingItems = true === options.ignoreOverlappingItems;
+    drawBoundaryLines = true === options.drawBoundaryLines;
+
+    // make copy of all paths
+    var pathsLeft = pol1.copyPaths(),
+        pathsRight = pol2.copyPaths();
+
+    // sort paths
+    pathsLeft.sort(fromTopThenRight);
+    pathsRight.sort(fromTopThenLeft);
+
+    var allPoints = concatPaths([pathsLeft, pathsRight]);
+    allPoints.sort(fromTop);
+
+    // collect all Y values - these are the 'slices' to intersect
+    var yValues = [];
+
+    for (var i = 0; i < allPoints.length; i++) {
+
+        if (
+            0 === yValues.length
+            || yValues[yValues.length - 1] !== allPoints[i][1]
+        )
+            yValues.push(allPoints[i][1]);
+
+    }
+
+    // fresh copy of paths
+    pathsLeft = pol1.copyPaths();
+    pathsRight = pol2.copyPaths();
+
+    // add closing point
+    for (var i = 0; i < pathsLeft.length; i++)
+        if (pol1.pathsClosed[i])
+            pathsLeft[i].push(pathsLeft[i][0]);
+
+    // add closing point
+    for (var i = 0; i < pathsRight.length; i++)
+        if (pol2.pathsClosed[i])
+            pathsRight[i].push(pathsRight[i][0]);
+
+    var bounds1 = pol1.getBounds(),
+        bounds2 = pol2.getBounds(),
+        overlap = bounds1[2] - bounds2[0];
+
+    if (overlap > 0) {
+        // paths are overlapping
+
+        if (ignoreOverlappingItems)
+            return;
+
+        Mat.transformPaths({
+            paths: pathsRight,
+            matrix: Mat.getTranslationMatrix([overlap, 0]),
+        });
+    }
+    else
+        overlap = undefined;
+
+    // extreme points are used when a path
+    // has no intersection with the slice
+    var extreme1 = bounds1[0],
+        extreme2 = bounds2[2];
+
+    // boundaries are a "path" of points, one per slice,
+    // that bound the item from one direction
+    var boundary1 = getBoundaryPoints(pathsLeft, extreme1, yValues, sortRight),
+        boundary2 = getBoundaryPoints(pathsRight, extreme2, yValues, sortLeft);
+
+    if (drawBoundaryLines) {
+        // draw boundary lines
+        drawPath(boundary1);
+        drawPath(boundary2);
+        // return;
+    }
+
+    var touchDistance = getMinDistanceBetweenMatchedPoints(boundary1, boundary2);
+
+    if (overlap)
+        // adjust for the earlier overlap correction
+        touchDistance -= overlap;
+
+    return touchDistance;
+
+
+    /* ---------------------------------------------   */
+
+    // draw the boundary just for debugging purposes
+    function drawPath(path) {
+
+        var boundaryItem = Bez.draw({
+            doc: options.doc,
+            paths: Bez.convertToPaths([path]),
+            pathsClosed: [false],
+            select: true,
+        });
+
+        boundaryItem.move(options.doc, ElementPlacement.PLACEATEND);
+
+    };
+
+    // SORTING FUNCTIONS
+
+    function fromTop(a, b) {
+        return b[1] - a[1];
+    };
+
+    function sortRight(a, b) {
+        return b[0] - a[0];
+    };
+
+    function sortLeft(a, b) {
+        return a[0] - b[0];
+    };
+
+    function fromTopThenLeft(a, b) {
+        if (a[1] < b[1]) return -1;
+        if (a[1] > b[1]) return 1;
+        if (a[0] < b[0]) return -1;
+        if (a[0] > b[0]) return 1;
+        return 0;
+    };
+
+    function fromTopThenRight(a, b) {
+        if (a[1] < b[1]) return -1;
+        if (a[1] > b[1]) return 1;
+        if (a[0] < b[0]) return 1;
+        if (a[0] > b[0]) return -1;
+        return 0;
+    };
+
+};
+
+
+/**
+ * Returns an array of points derived
+ * by intersecting "slices" at `yValues`
+ * @param {Array<Array<point>>} paths - a paths/points array.
+ * @param {Number} extreme - the extreme point of the boundary.
+ * @param {Array<Number>} yValues - the y-axis slice positions.
+ * @param {Function} sorter - a sorter used to sort each slice of points.
+ * @returns {Array<point>}
+ */
+function getBoundaryPoints(paths, extreme, yValues, sorter) {
+
+    var boundary = [];
+
+    for (var i = 0, intersect; i < yValues.length; i++) {
+
+        // find points by slicing along y axis
+        // if no points found, use extreme value
+        intersect = findIntersectionPoints(paths, yValues[i]) || [[extreme, yValues[i]]];
+
+        // sort away from extreme side
+        intersect.sort(sorter);
+
+        // add just the first point
+        boundary.push(intersect[0]);
+
+    }
+
+    return boundary;
 
 };
