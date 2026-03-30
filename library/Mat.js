@@ -1,5 +1,12 @@
-var Mat = {};
+/**
+ * @file Mat.js
+ *
+ * A matrix helper object.
+ * @author m1b
+ * @version 2024-04-06
+ */
 
+var Mat = {};
 
 /**
  * Returns a 3x3 identity matrix.
@@ -14,7 +21,6 @@ Mat.getIdentityMatrix = function getIdentityMatrix() {
     ];
 
 };
-
 
 /**
  * Returns a translation matrix.
@@ -31,7 +37,6 @@ Mat.getTranslationMatrix = function getTranslationMatrix(v) {
 
 };
 
-
 /**
  * Returns a matrix to scale by `sx` x `sy`.
  * @param {Number} sx - the horizontal scale factor [0..1].
@@ -47,7 +52,6 @@ Mat.getScaleMatrix = function getScaleMatrix(sx, sy) {
     ];
 
 };
-
 
 /**
  * Returns a matrix with `angle` rotation.
@@ -68,7 +72,6 @@ Mat.getRotationMatrix = function getRotationMatrix(angle, angleIsDegrees) {
 
 };
 
-
 /**
  * Returns the rotation angle from an unskewed matrix.
  * @param {3x3 matrix|Matrix} matrix - a 3x3 matrix array or Illustrator Matrix.
@@ -85,57 +88,69 @@ Mat.getRotationFromUnskewedMatrix = function getRotationFromUnskewedMatrix(matri
         angleRadians = Math.atan2(matrix[0][1], matrix[0][0]);
 
     return true === inDegrees
-        ? asDegrees(angleRadians)
+        ? (angleRadians * 180) / Math.PI
         : angleRadians;
 
 };
 
-
 /**
- * Multiply two 3x3 matrices.
- * @param {Array<Number>} m1 - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
- * @param {Array<Number>} m2 - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
- * @returns {Array<Number>}
+ * Multiply two or more 3x3 matrices.
+ * @param {Array<matrix>} matrices - a 2D matrix [[a,b,tx], [d,e,ty], [0,0,1]].
+ * @returns {matrix}
  */
-Mat.multiplyMatrices = function multiplyMatrices(m1, m2) {
-
-    var rowCount1 = m1.length,
-        rowCount2 = m2.length,
-        columnCount1 = m1[0].length,
-        columnCount2 = m2[0].length,
-        m = new Array(rowCount1);
+Mat.multiplyMatrices = function multiplyMatrices(matrices) {
 
     if (
-        rowCount1 !== 3
-        || columnCount1 !== 3
+        undefined == matrices
+        || 0 === matrices.length
     )
-        throw Error('Pol.multiplyMatrices: bad `m1` supplied.');
+        throw Error('Mat.multiplyMatrices: no matrices supplied.');
 
-    if (
-        rowCount2 !== 3
-        || columnCount2 !== 3
-    )
-        throw Error('Pol.multiplyMatrices: bad `m2` supplied.');
+    // initialize result matrix
+    var result,
+        len = matrices.length - 1;
 
-    for (var r = 0; r < rowCount1; ++r) {
+    // multiply each subsequent matrix with the result matrix
+    for (var i = len; i >= 0; i--) {
+        // for (var i = 0; i < matrices.length; i++) {
 
-        // initialize the current row
-        m[r] = new Array(columnCount2);
-        for (var c = 0; c < columnCount2; ++c) {
+        var m = matrices[i],
+            rowCount = m.length,
+            columnCount = m[0].length;
 
-            // initialize the current cell
-            m[r][c] = 0;
-            for (var i = 0; i < columnCount1; ++i)
-                m[r][c] += m1[r][i] * m2[i][c];
+        if (
+            rowCount !== 3
+            || columnCount !== 3
+        )
+            throw Error('Mat.multiplyMatrices: matrix ' + i + ' is bad.');
+
+        if (len === i) {
+            // initialise result
+            result = m;
+            continue;
+        }
+
+        var temp = new Array(rowCount);
+
+        for (var r = 0; r < rowCount; ++r) {
+            temp[r] = new Array(columnCount);
+
+            for (var c = 0; c < columnCount; ++c) {
+                temp[r][c] = 0;
+
+                for (var k = 0; k < columnCount; ++k)
+                    temp[r][c] += result[r][k] * m[k][c];
+
+            }
 
         }
 
+        result = temp;
     }
 
-    return m;
+    return result;
 
 };
-
 
 /**
  * Returns an Illustrator Matrix object
@@ -160,7 +175,6 @@ Mat.getIllustratorMatrix = function getIllustratorMatrix(matrix) {
 
 };
 
-
 /**
  * Returns an 3x3 array matrix, given
  * an Illustrator Matrix object.
@@ -184,7 +198,6 @@ Mat.matrixFromIllustratorMatrix = function matrixFromIllustratorMatrix(illustrat
 
 };
 
-
 /**
  * Transformation a point with a matrix.
  * @param {Array<Number>} point - a point [x, y].
@@ -194,15 +207,16 @@ Mat.matrixFromIllustratorMatrix = function matrixFromIllustratorMatrix(illustrat
 Mat.transformPoint = function transformPoint(point, matrix) {
 
     // add 1 to the point for homogeneity with the matrix
-    var p = Mat.multiplyMatrixVector(matrix, [point[0], point[1], 1]);
+    var p = Mat.multiplyMatrixVector([point[0], point[1], 1], matrix);
 
     return [p[0], p[1]];
 
 };
 
-
 /**
  * Transforms a path/points array using a 3x3 matrix.
+ * Note: this does not transform Illustrator paths
+ * - see Mat.transformPathItem.
  * @param {Object} options
  * @param {Array<Array<point>>} options.paths - a path/point array.
  * @param {Array<Array<Number>>} options.matrix - a 3x3 matrix.
@@ -252,18 +266,17 @@ Mat.transformPaths = function transformPaths(options) {
 
 };
 
-
 /**
  * Multiplies a matrix by a vector,
  * returning the resulting vector.
  * Note: will throw error if the vector
  * length is less than the number of
  * columns in the matrix.
- * @param {Array<Array<Number>>} matrix - the matrix to multiply.
  * @param {Array<Number>} vector - the vector to multiple.
+ * @param {Array<Array<Number>>} matrix - the matrix to multiply.
  * @returns {Array<Number>}
  */
-Mat.multiplyMatrixVector = function multiplyMatrixVector(matrix, vector) {
+Mat.multiplyMatrixVector = function multiplyMatrixVector(vector, matrix) {
 
     var result = [];
     for (var i = 0; i < matrix.length; i++) {
@@ -278,8 +291,6 @@ Mat.multiplyMatrixVector = function multiplyMatrixVector(matrix, vector) {
 
 };
 
-
-
 /**
  * Returns an inverted matrix for a given matrix,
  * or null if the determinant is zero.
@@ -288,13 +299,20 @@ Mat.multiplyMatrixVector = function multiplyMatrixVector(matrix, vector) {
  */
 Mat.invertMatrix3x3 = function invertMatrix3x3(matrix) {
 
+    if (
+        'Array' !== matrix.constructor.name
+        || 3 !== matrix.length
+        || 3 !== matrix[0].length
+    )
+        throw Error('Mat.invertMatrix: bad `matrix` supplied.');
+
     var m = matrix,
         determinant =
             m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2])
             - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
             + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
 
-    if (determinant === 0)
+    if (0 === determinant)
         // not invertible!
         return null;
 
@@ -307,11 +325,6 @@ Mat.invertMatrix3x3 = function invertMatrix3x3(matrix) {
     return [inverse[0], inverse[1]];
 
 };
-
-
-function asRadians(degrees) { return degrees * (Math.PI / 180) };
-function asDegrees(radians) { return (radians * 180) / Math.PI };
-
 
 /**
  * Rotate the item so it's "rotation is zero".
@@ -334,9 +347,6 @@ Mat.unRotateUnskewedPageItem = function unRotatePageItem(item) {
 
 };
 
-
-
-
 /**
  * Returns [tx, ty], given a move of `distance` on `angle`.
  * @param {Number} angle - the angle of the move.
@@ -355,5 +365,36 @@ Mat.getTranslationVector = function getTranslationVector(angle, distance) {
     const ty = distance * Math.sin(radians);
 
     return [tx, ty];
+
+};
+
+/**
+ * Transforms a path item using a 3x3 matrix.
+ * @param {Object} options
+ * @param {PathItem|CompoundPathItem} options.item - a path item or compoundPathItem.
+ * @param {Array<Array<Number>>} options.matrix - a 3x3 matrix.
+ */
+Mat.transformPathItem = function transformPathItem(options) {
+
+    options = options || {};
+
+    var item = options.item,
+        matrix = options.matrix;
+
+    for (var i = 0, p, l = item.pathPoints.length; i < l; i++)
+        Mat.transformPathPoint(item.pathPoints[i], matrix);
+
+};
+
+/**
+ * Transform `pathPoint` with `matrix`.
+ * @param {PathPoint} pathPoint - the PathPoint to transform.
+ * @param {matrix} matrix - the matrix (3x3 array).
+ */
+Mat.transformPathPoint = function transformPathPoint(pathPoint, matrix) {
+
+    pathPoint.anchor = Mat.transformPoint(pathPoint.anchor, matrix);
+    pathPoint.leftDirection = Mat.transformPoint(pathPoint.leftDirection, matrix);
+    pathPoint.rightDirection = Mat.transformPoint(pathPoint.rightDirection, matrix);
 
 };

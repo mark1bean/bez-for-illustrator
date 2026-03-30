@@ -1,14 +1,14 @@
 if ('undefined' === typeof Bez)
     $.evalFile(File($.fileName).parent + 'Bez.js');
 
-
 /**
- * POL - A general purpose simple-polygon manipulation helper object.
+ * Pol - A general purpose simple-polygon manipulation helper object.
  *
  * Notes:
  * Pol treats every pathItem as a compoundPathItem, so
  * to access the Pol's paths, iterate over pol.paths.
- * We call this a path/points array.
+ * We call this a path/points array, eg. second point of
+ * first path is pol.paths[0][1].
  *
  * pol.pathsClosed[i] and pol.paths[i] share the same indexing.
  *
@@ -18,8 +18,8 @@ if ('undefined' === typeof Bez)
  *   Example 2. Make Pol from array of "paths" which are arrays of points
  *     var pol = new Pol({ paths: myPathsArray });
  *
- * To draw the polygon to a separate path item, use the static Pol.draw, but to
- * update the pol's own page item, use the pol.draw.
+ * To draw the polygon to a new (separate) path item, use the static Pol.draw,
+ * but to update the pol's own page item, use the pol.draw.
  *
  * @author m1b
  * @version 2024-01-20
@@ -77,7 +77,6 @@ function Pol(options) {
 
 };
 
-
 /**
  * Given an Illustrator page item, extracts polygon paths.
  * If the page item has bezier curves, uses creates an
@@ -101,7 +100,6 @@ Pol.prototype.consumePageItem = function consumePageItem(pageItem, flatness) {
 
 };
 
-
 /**
  * Duplicate the pol.
  * Note: the heavy lifting of duplicating
@@ -123,7 +121,6 @@ Pol.prototype.duplicate = function duplicate() {
 
 };
 
-
 /**
  * Returns true with point `p` is contained by with the bez.
  * @version 2023-06-12
@@ -137,7 +134,6 @@ Pol.prototype.containsPoint = function containsPoint(point) {
 
 };
 
-
 /**
  * Returns true with point `point` is contained by `path`.
  * @version 2023-06-12
@@ -148,8 +144,7 @@ Pol.prototype.containsPoint = function containsPoint(point) {
 Pol.pathContainsPoint = function containsPoint(paths, point) {
 
     var x = point[0],
-        y = point[1],
-        doesIntersect = false;
+        y = point[1];
 
     if ('Number' === paths[0][0].constructor.name)
         // if path is singular, put it into array
@@ -178,17 +173,14 @@ Pol.pathContainsPoint = function containsPoint(paths, point) {
 
         }
 
-        if (inside) {
-            doesIntersect = true;
+        if (inside)
             break pathsLoop;
-        }
 
     }
 
     return inside;
 
 };
-
 
 /**
  * Returns the pol's centroid.
@@ -202,7 +194,6 @@ Pol.prototype.getCentroid = function getMyCentroid() {
     return Pol.getCentroidForPath(self.paths);
 
 };
-
 
 /**
  * Returns the centroid [x, y] of the polygon.
@@ -233,7 +224,6 @@ Pol.getCentroidForPath = function getCentroidForPath(path) {
     return [x / area, y / area];
 
 };
-
 
 /**
  * desc
@@ -339,7 +329,6 @@ Pol.draw = function polDraw(options) {
 
         debugger; // 2024-01-27XXX
 
-
         // set the polarity
         item.polarity = i == 0 ? PolarityValues.POSITIVE : PolarityValues.NEGATIVE;
 
@@ -364,7 +353,6 @@ Pol.draw = function polDraw(options) {
         return drawnItems;
 
 };
-
 
 /**
  * Returns the convex hull of a polygon.
@@ -439,7 +427,6 @@ Pol.prototype.getConvexHull = function getConvexHull(flatness, forceUpdate) {
 
 };
 
-
 /**
  * Returns the rotation amount in degrees
  * that the item needs to be rotated such
@@ -500,7 +487,6 @@ Pol.findRotationByMinimalBounds = function findRotationByMinimalBounds(item) {
     };
 
 };
-
 
 /**
  * Draws visual indicators showing path direction.
@@ -568,7 +554,6 @@ Pol.prototype.drawPathIndicators = function (options) {
 
 };
 
-
 /**
  * Returns true when the polygons overlap.
  * @version 2023-11-26
@@ -590,7 +575,6 @@ Pol.doPolygonsOverlap = function doPolygonsOverlap(poly1, poly2) {
     return false;
 
 };
-
 
 /**
  * Returns true when the polygons'
@@ -614,7 +598,6 @@ Pol.doPolygonsOverlapAsConvexHulls = function doPolygonsOverlapAsConvexHulls(pol
 
     // no separating axis found, polygons overlap
     return true;
-
 
     /**
      * Returns array of vectors, where each vector is
@@ -692,7 +675,6 @@ Pol.doPolygonsOverlapAsConvexHulls = function doPolygonsOverlapAsConvexHulls(pol
 
 };
 
-
 /**
  * Decomposes a non-convex polygon into convex
  * sub-polygons using the ear clipping method.
@@ -719,7 +701,6 @@ Pol.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces
     }
 
     return result;
-
 
     function isEar(poly, ear) {
 
@@ -782,9 +763,6 @@ Pol.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces
 
 };
 
-
-
-
 /**
  * Returns simplified polygon, where points
  * are removed if considered collinear.
@@ -837,7 +815,6 @@ Pol.simplifyPolygon = function simplifyPolygon(poly, tolerance) {
     };
 
 };
-
 
 /**
  * Reverses the order of path points.
@@ -908,7 +885,6 @@ Pol.prototype.reverse = function reverse(options) {
 
 };
 
-
 /**
  * Returns information on the closest point
  * to the supplied point.
@@ -952,7 +928,6 @@ Pol.prototype.closestToPoint = function closestToPoint(point) {
 
 };
 
-
 /**
  * Re-orders a path by stipulating the first point.
  * @author m1b
@@ -988,7 +963,6 @@ Pol.prototype.setFirstPoint = function setFirstPoint(options) {
 
 };
 
-
 /**
  * Returns the indices of the point.
  * @param {BezPoint} point - the BezPoint.
@@ -1006,7 +980,6 @@ Pol.prototype.getIndicesOfPoint = function getIndicesOfPoint(point) {
 
 };
 
-
 /**
  * Updates self.pageItem.
  * @author m1b
@@ -1023,7 +996,6 @@ Pol.prototype.draw = function draw(select) {
         self.select();
 
 };
-
 
 /**
  * Draws the supplied paths, either
@@ -1170,7 +1142,6 @@ Pol.draw = function polDraw(options) {
 
 };
 
-
 /**
  * Updates the pol's page item
  * to match its path/points array.
@@ -1284,7 +1255,6 @@ Pol.prototype.updatePageItem = function updatePageItem() {
 
 };
 
-
 /**
  * Adds points for a new path to the pol.
  * Use redraw() to update the pathItem.
@@ -1307,7 +1277,6 @@ Pol.prototype.addPath = function addPath(points, closed) {
 
 };
 
-
 /**
  * Returns the pol's bounding box.
  * @author m1b
@@ -1320,7 +1289,6 @@ Pol.prototype.getBounds = function getBounds() {
     return Pol.getBounds(self.paths);
 
 };
-
 
 /**
  * Returns the coordinates of the requested
@@ -1337,7 +1305,6 @@ Pol.prototype.getCoordinatesOfTransformPosition = function getCoordinatesOfTrans
     return Pol.getCoordinatesOfTransformPosition(transformPositionType, bounds || this.getBounds());
 
 };
-
 
 /**
  * Returns the coordinates of the requested
@@ -1382,7 +1349,6 @@ Pol.getCoordinatesOfTransformPosition = function bezGetCoordinatesOfTransformPos
         return [bounds[0], bounds[1] + (bounds[3] - bounds[1]) / 2];
 
 };
-
 
 /**
  * Rotate the pol's points.
@@ -1455,7 +1421,6 @@ Pol.prototype.rotate = function rotate(options) {
 
 };
 
-
 /**
  * Rotate the pol absolutely.
  * @author m1b
@@ -1483,7 +1448,6 @@ Pol.prototype.setAngle = function setAngle(options) {
     self.rotate(options);
 
 };
-
 
 /**
  * Returns an angle derived from the
@@ -1521,8 +1485,6 @@ Pol.prototype.getRotationDatum = function getRotationDatum(reverse, pathIndex) {
     return Pol.getAngleOfPointP1(p1, p2, false, reverse);
 
 }
-
-
 
 /**
  * Scale the pol's points.
@@ -1653,7 +1615,6 @@ Pol.prototype.scale = function scale(options) {
         self.draw({ select: isSelected });
 
 };
-
 
 /**
  * Translates the pol's points,
@@ -1837,7 +1798,6 @@ Pol.prototype.translate = function translate(options) {
 
 };
 
-
 /**
  * Returns coordinates of either
  * (a) a supplied point,
@@ -1882,7 +1842,6 @@ Pol.prototype.getCoordinatesOfTransformPoint = function getCoordinatesOfTransfor
 
     }
 
-
     // 2. try to resolve tp for supplied `transformPositionType`
 
     if (
@@ -1894,7 +1853,6 @@ Pol.prototype.getCoordinatesOfTransformPoint = function getCoordinatesOfTransfor
     return tp;
 
 };
-
 
 /**
  * Selects the pol's pathItem.
@@ -1910,7 +1868,6 @@ Pol.prototype.select = function select() {
 
 };
 
-
 /**
  * Deselects the pol's pathItem.
  * @author m1b
@@ -1924,7 +1881,6 @@ Pol.prototype.deselect = function deselect() {
 
 };
 
-
 /**
  * Returns string representation of the Pol.
  * @author m1b
@@ -1936,7 +1892,6 @@ Pol.prototype.toString = function bezToString() {
     return '[Pol: ' + this.paths.length + ' paths]';
 
 };
-
 
 /**
  * Returns area of single-path polygon.
@@ -1963,7 +1918,6 @@ Pol.getPolygonArea = function getPolygonArea(path) {
 
 };
 
-
 /**
  * Returns the index of the found `obj` in `arr`
  * or returns -1 if object isn't found.
@@ -1978,7 +1932,6 @@ function indexOf(obj, arr) {
     return -1;
 };
 
-
 /**
  * Returns a deep copy of pol's paths.
  * @returns {Array<polygon>}
@@ -1991,7 +1944,6 @@ Pol.prototype.copyPaths = function copyPaths() {
 
 };
 
-
 /**
  * Returns a copy of an array of arrays.
  * @param {Array<Array>} arrays - array of arrays.
@@ -2002,14 +1954,13 @@ function copyArrays(arrays) {
     var copy = [];
 
     for (var i = 0; i < arrays.length; i++)
-        copy[i] = Array.isArray(arrays[i])
+        copy[i] = 'Array' === arrays[i].constructor.name
             ? copyArrays(arrays[i])
             : arrays[i];
 
     return copy;
 
 };
-
 
 /**
  * Returns an array of points that hug one boundary of the pol.
@@ -2046,7 +1997,6 @@ Pol.prototype.getBoundaryPoints = function getBoundaryPoints(options) {
     return self.boundaries[options.direction];
 
 };
-
 
 /**
  * Returns an array of [x,y] points which are derived
@@ -2153,7 +2103,6 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
     // add the end extreme step
     steps.push(getValueForStep(min, max, sampleCount, sampleCount - 1));
 
-
     if (false) {
         // DEBUGGING: this returns the slice lines for drawing
         var points = [];
@@ -2232,7 +2181,6 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
         return min + ((max - min) / (stepCount - 1) * step);
     };
 
-
     /**
      * Given a direction `key`, sets axis and returns sorter function.
      * This function also serves as a reasonable enum for direction.
@@ -2263,9 +2211,7 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
     /** Sort function for bottom direction */
     function bottomDirection(a, b) { return a[1] - b[1] };
 
-
 };
-
 
 /**
  * Returns the point at which two finite lines intersect.
@@ -2319,7 +2265,6 @@ Pol.getLineLineCollision = function getLineLineCollision(p0, p1, p2, p3) {
 
 };
 
-
 /**
  * Returns the bounds of an array of pols or polygons.
  * @param {Array<polygon>} polygons - an array of arrays of points [x, y].
@@ -2353,7 +2298,6 @@ Pol.getBounds = function getBounds(polygons) {
 
 };
 
-
 /**
  * Returns a function that sorts points
  * along an axis specified as `angleDegrees`.
@@ -2380,7 +2324,6 @@ function getSorterForAngle(angleDegrees) {
             };
     }
 
-
     /**
      * For a given point, returns the x coordinate
      * rotated by `angleRadians`.
@@ -2398,8 +2341,6 @@ function getSorterForAngle(angleDegrees) {
     };
 
 };
-
-
 
 /**
  * Returns angle, in degrees, of the line p1_p2.
@@ -2422,7 +2363,6 @@ function angleOfLine(p1, p2, makePositive) {
     return angleDegrees;
 
 };
-
 
 /**
  * Concatenates all paths into a single array of points.
@@ -2450,7 +2390,6 @@ function concatPaths(paths) {
     return result;
 
 };
-
 
 /**
  * Compares pairs of points, and returns the minimum distance between any pair.
@@ -2485,9 +2424,6 @@ function getMinDistanceBetweenMatchedPoints(points1, points2) {
     return Math.sqrt(minSquareDistance);
 
 };
-
-
-
 
 /**
  * Given a path, will return all points
@@ -2531,7 +2467,6 @@ function findIntersectionPoints(paths, targetY, tolerance) {
             y2 = points[j + 1][1];
 
             // $.writeln('> Line: ' + [x1, y1] + ' to ' + [x2, y2]);
-
 
             if (
                 Math.min(y1, y2) > targetY
@@ -2589,7 +2524,6 @@ function findIntersectionPoints(paths, targetY, tolerance) {
 
 };
 
-
 /**
  * Returns the distance required to move
  * `pol2` left (ie. 180°) until it touches `pol1`.
@@ -2614,8 +2548,8 @@ function getDistanceApart(options) {
 
     var pol1 = options.pol1,
         pol2 = options.pol2,
-        ignoreOverlappingItems = true === options.ignoreOverlappingItems;
-    drawBoundaryLines = true === options.drawBoundaryLines;
+        ignoreOverlappingItems = true === options.ignoreOverlappingItems,
+        drawBoundaryLines = true === options.drawBoundaryLines;
 
     // make copy of all paths
     var pathsLeft = pol1.copyPaths(),
@@ -2683,12 +2617,12 @@ function getDistanceApart(options) {
     var boundary1 = getBoundaryPoints(pathsLeft, extreme1, yValues, sortRight),
         boundary2 = getBoundaryPoints(pathsRight, extreme2, yValues, sortLeft);
 
-    if (drawBoundaryLines) {
-        // draw boundary lines
-        drawPath(boundary1);
-        drawPath(boundary2);
-        // return;
-    }
+    // if (drawBoundaryLines) {
+    //     // draw boundary lines
+    //     drawPath(boundary1);
+    //     drawPath(boundary2);
+    //     // return;
+    // }
 
     var touchDistance = getMinDistanceBetweenMatchedPoints(boundary1, boundary2);
 
@@ -2697,7 +2631,6 @@ function getDistanceApart(options) {
         touchDistance -= overlap;
 
     return touchDistance;
-
 
     /* ---------------------------------------------   */
 
@@ -2746,7 +2679,6 @@ function getDistanceApart(options) {
     };
 
 };
-
 
 /**
  * Returns an array of points derived

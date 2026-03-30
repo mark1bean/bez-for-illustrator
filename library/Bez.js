@@ -1,8 +1,8 @@
 if ('undefined' === typeof Mat)
-    $.evalFile(File($.fileName).parent + 'Mat.js');
+    $.evalFile(File($.fileName).parent + '/Mat.js');
 
 if ('undefined' === typeof Pol)
-    $.evalFile(File($.fileName).parent + 'Pol.js');
+    $.evalFile(File($.fileName).parent + '/Pol.js');
 
 
 /**
@@ -3832,6 +3832,9 @@ Bez.prototype.getSimilarityTo = function getSimilarityTo(bez, options) {
 
     options = options || {};
 
+    if ('Bez' !== bez.constructor.name)
+        bez = new Bez({ pageItem: bez });
+
     var self = this,
         ignoreElementCount = options.ignoreElementCount !== false,
         ignoreAngles = options.ignoreAngles === true,
@@ -5463,15 +5466,19 @@ function pointsAreEqual(p1, p2) {
  * Returns angle between two points
  * and horizontal.
  * @author m1b
- * @version 2022-07-25
+ * @version 2022-07-26
  * @param {Array} p1 - a point array [x, y].
  * @param {Array} p2 - a point array [x, y].
- * @returns {Number} - the angle in degrees.
+ * @param {Boolean} asRadians - whether the result should be in radians (default: false).
+ * @returns {Number} - the angle.
  */
-function angleBetweenPoints(p1, p2) {
+function angleBetweenPoints(p1, p2, asRadians) {
 
     var delta = differenceBetweenPoints(p1, p2),
         theta = Math.atan2(-delta[1], -delta[0]); // radians
+
+    if (asRadians)
+        return theta;
 
     return theta * (180 / Math.PI);
 

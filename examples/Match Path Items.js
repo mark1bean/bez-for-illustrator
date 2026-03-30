@@ -48,6 +48,7 @@
     function getPathItemsMatchingPathItem(item, items, angleTolerance, lengthRatioTolerance) {
 
         items = itemsInsideGroupItems(items, ['PathItem', 'CompoundPathItem']);
+        // items = Mittens.getItems({from: items});
 
         var bez = new Bez({ pageItem: item }),
             hash = bez.makeHash(),
@@ -57,6 +58,8 @@
 
             if (item.uuid === items[i].uuid)
                 continue;
+
+            debugger; // 2024-09-02
 
             if (bez.doesMatchItem({
                 pageItem: items[i],
