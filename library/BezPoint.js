@@ -302,12 +302,12 @@ BezPoint.prototype.translate = function bezPointTranslate(translation) {
  */
 BezPoint.prototype.rotate = function bezPointRotate(transformPoint, angle) {
 
-    var self = this,
-        cx = transformPoint[0],
-        cy = transformPoint[1],
-        radians = (Math.PI / 180) * angle,
-        cos = Math.cos(radians),
-        sin = Math.sin(radians);
+    var self = this;
+    var cx = transformPoint[0];
+    var cy = transformPoint[1];
+    var radians = (Math.PI / 180) * angle;
+    var cos = Math.cos(radians);
+    var sin = Math.sin(radians);
 
     return new BezPoint(
         {
@@ -325,8 +325,8 @@ BezPoint.prototype.rotate = function bezPointRotate(transformPoint, angle) {
      * @returns {Array<Number>} - the rotated point [rx, ry].
      */
     function getRotatedPoint(p) {
-        var x = p[0],
-            y = p[1];
+        var x = p[0];
+        var y = p[1];
 
         return [
             (cos * (x - cx)) - (sin * (y - cy)) + cx,

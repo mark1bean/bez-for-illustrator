@@ -28,7 +28,10 @@ function polylabel(polygon, precision, debug) {
     precision = precision || 1.0;
 
     // find the bounding box of the outer ring
-    var minX, minY, maxX, maxY;
+    var minX;
+    var minY;
+    var maxX;
+    var maxY;
 
     for (var i = 0; i < polygon[0].length; i++) {
 

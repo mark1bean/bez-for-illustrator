@@ -33,10 +33,10 @@ var _polAlgorithmsIncluded = true;
  */
 Pol.prototype.getConvexHull = function getConvexHull(flatness, forceUpdate) {
 
-    var self = this,
-        convexHull = self.convexHull,
-        poly = self.paths,
-        hull = [];
+    var self = this;
+    var convexHull = self.convexHull;
+    var poly = self.paths;
+    var hull = [];
 
     if (
         true !== forceUpdate
@@ -112,8 +112,8 @@ Pol.prototype.getConvexHull = function getConvexHull(flatness, forceUpdate) {
 Pol.doPolygonsOverlap = function doPolygonsOverlap(poly1, poly2) {
 
     // decompose into convex pieces
-    var hulls1 = Pol.decomposePolygonIntoConvexPieces(poly1),
-        hulls2 = Pol.decomposePolygonIntoConvexPieces(poly2);
+    var hulls1 = Pol.decomposePolygonIntoConvexPieces(poly1);
+    var hulls2 = Pol.decomposePolygonIntoConvexPieces(poly2);
 
     for (var i = 0; i < hulls1.length; i++)
         for (var j = 0; j < hulls2.length; j++)
@@ -159,9 +159,9 @@ Pol.doPolygonsOverlapAsConvexHulls = function doPolygonsOverlapAsConvexHulls(pol
         var result = [];
 
         for (var i = 0; i < poly.length; i++) {
-            var point = poly[i],
-                nextPoint = poly[(i + 1) % poly.length],
-                edge = [nextPoint[0] - point[0], nextPoint[1] - point[1]];
+            var point = poly[i];
+            var nextPoint = poly[(i + 1) % poly.length];
+            var edge = [nextPoint[0] - point[0], nextPoint[1] - point[1]];
             result.push([-edge[1], edge[0]]);
         }
 
@@ -176,8 +176,8 @@ Pol.doPolygonsOverlapAsConvexHulls = function doPolygonsOverlapAsConvexHulls(pol
      */
     function getMinMax(values) {
 
-        var min = values[0],
-            max = values[0];
+        var min = values[0];
+        var max = values[0];
 
         for (var i = 1; i < values.length; i++) {
 
@@ -252,9 +252,9 @@ Pol.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces
 
     function isEar(poly, ear) {
 
-        var p1 = ear[0],
-            p2 = ear[1],
-            p3 = ear[2];
+        var p1 = ear[0];
+        var p2 = ear[1];
+        var p3 = ear[2];
 
         for (var i = 0; i < poly.length; i++) {
 
@@ -274,9 +274,9 @@ Pol.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces
 
     function isPointInTriangle(point, p1, p2, p3) {
 
-        var area = 0.5 * (-p2[1] * p3[0] + p1[1] * (-p2[0] + p3[0]) + p1[0] * (p2[1] - p3[1]) + p2[0] * p3[1]),
-            s = 1 / (2 * area) * (p1[1] * p3[0] - p1[0] * p3[1] + (p3[1] - p1[1]) * point[0] + (p1[0] - p3[0]) * point[1]),
-            t = 1 / (2 * area) * (p1[0] * p2[1] - p1[1] * p2[0] + (p1[1] - p2[1]) * point[0] + (p2[0] - p1[0]) * point[1]);
+        var area = 0.5 * (-p2[1] * p3[0] + p1[1] * (-p2[0] + p3[0]) + p1[0] * (p2[1] - p3[1]) + p2[0] * p3[1]);
+        var s = 1 / (2 * area) * (p1[1] * p3[0] - p1[0] * p3[1] + (p3[1] - p1[1]) * point[0] + (p1[0] - p3[0]) * point[1]);
+        var t = 1 / (2 * area) * (p1[0] * p2[1] - p1[1] * p2[0] + (p1[1] - p2[1]) * point[0] + (p2[0] - p1[0]) * point[1]);
 
         return s > 0 && t > 0 && 1 - s - t > 0;
 
@@ -286,10 +286,10 @@ Pol.decomposePolygonIntoConvexPieces = function decomposePolygonIntoConvexPieces
 
         for (var i = 0; i < poly.length; i++) {
 
-            var p1 = poly[i],
-                p2 = poly[(i + 1) % poly.length],
-                p3 = poly[(i + 2) % poly.length],
-                ear = [p1, p2, p3];
+            var p1 = poly[i];
+            var p2 = poly[(i + 1) % poly.length];
+            var p3 = poly[(i + 2) % poly.length];
+            var ear = [p1, p2, p3];
 
             if (isEar(poly, ear))
                 return ear;
@@ -382,13 +382,12 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
 
     options = options || {};
 
-    var axis,
-        bounds = options.bounds,
-        pathsClosed = options.pathsClosed || false,
-        sampleSize = options.sampleSize,
-
-        // direction now is a sort function
-        direction = allDirections(options.direction);
+    var axis;
+    var bounds = options.bounds;
+    var pathsClosed = options.pathsClosed || false;
+    var sampleSize = options.sampleSize;
+    // direction now is a sort function
+    var direction = allDirections(options.direction);
 
     if (undefined == sampleSize)
         throw Error('Pol.getBoundaryPoints: bad `sampleSize` supplied.');
@@ -398,10 +397,10 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
 
     // min and max are the axis-orthogonal bounds
     // minA and maxA are the axis-parallel bounds
-    var min,
-        max,
-        minA,
-        maxA;
+    var min;
+    var max;
+    var minA;
+    var maxA;
 
     if (0 === axis) {
         // left or right direction
@@ -420,9 +419,9 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
         maxA = bounds[3];
     }
 
-    var sampleCount = Math.round(Math.abs(max - min) / options.sampleSize),
-        boundaryPoints = Array(sampleCount),
-        paths = options.paths;
+    var sampleCount = Math.round(Math.abs(max - min) / options.sampleSize);
+    var boundaryPoints = Array(sampleCount);
+    var paths = options.paths;
 
     if (undefined == options.paths)
         throw Error('Pol.getBoundaryPoints: bad `paths` supplied.');
@@ -437,15 +436,16 @@ Pol.getBoundaryPoints = function getBoundaryPoints(options) {
     var collisions = [];
 
     // calculate the sample slice steps
-    var steps = [],
-        // we put an extra sample step close to both extremes
-        // to catch cases (eg. fonts) where shapes have points
-        // close to the extremes but not actually on them.
-        // Imagine a hand written A with one leg slightly shorter
-        // than the other leg. var `buffer` is that distance.
-        buffer = sampleSize * 0.2,
-        bmin = min + buffer,
-        bmax = max - buffer;
+    var steps = [];
+
+    // we put an extra sample step close to both extremes
+    // to catch cases (eg. fonts) where shapes have points
+    // close to the extremes but not actually on them.
+    // Imagine a hand written A with one leg slightly shorter
+    // than the other leg. var `buffer` is that distance.
+    var buffer = sampleSize * 0.2;
+    var bmin = min + buffer;
+    var bmax = max - buffer;
 
     // add the starting  extreme step
     steps.push(getValueForStep(min, max, sampleCount, 0));
@@ -760,9 +760,9 @@ function getSorterForAngle(angleDegrees) {
      */
     function calculateDistanceAlongAxis(point) {
 
-        var dx = point[0],
-            dy = point[1],
-            rotatedX = dx * Math.cos(angleRadians) + dy * Math.sin(angleRadians);
+        var dx = point[0];
+        var dy = point[1];
+        var rotatedX = dx * Math.cos(angleRadians) + dy * Math.sin(angleRadians);
 
         return rotatedX;
 
@@ -801,8 +801,8 @@ function angleOfLine(p1, p2, makePositive) {
  */
 function getMinDistanceBetweenMatchedPoints(points1, points2) {
 
-    var len = Math.min(points1.length, points2.length),
-        minSquareDistance = Infinity;
+    var len = Math.min(points1.length, points2.length);
+    var minSquareDistance = Infinity;
 
     for (var i = 0, squareDistance; i < len; i++) {
 
@@ -877,13 +877,13 @@ function getDistanceApart(options) {
 
     options = options || {};
 
-    var pol1 = options.pol1,
-        pol2 = options.pol2,
-        ignoreOverlappingItems = true === options.ignoreOverlappingItems;
+    var pol1 = options.pol1;
+    var pol2 = options.pol2;
+    var ignoreOverlappingItems = true === options.ignoreOverlappingItems;
 
     // make copy of all paths
-    var pathsLeft = pol1.copyPaths(),
-        pathsRight = pol2.copyPaths();
+    var pathsLeft = pol1.copyPaths();
+    var pathsRight = pol2.copyPaths();
 
     // sort paths
     pathsLeft.sort(fromTopThenRight);
@@ -919,9 +919,9 @@ function getDistanceApart(options) {
         if (pol2.pathsClosed[i])
             pathsRight[i].push(pathsRight[i][0]);
 
-    var bounds1 = pol1.getBounds(),
-        bounds2 = pol2.getBounds(),
-        overlap = bounds1[2] - bounds2[0];
+    var bounds1 = pol1.getBounds();
+    var bounds2 = pol2.getBounds();
+    var overlap = bounds1[2] - bounds2[0];
 
     if (overlap > 0) {
         // paths are overlapping
@@ -939,13 +939,13 @@ function getDistanceApart(options) {
 
     // extreme points are used when a path
     // has no intersection with the slice
-    var extreme1 = bounds1[0],
-        extreme2 = bounds2[2];
+    var extreme1 = bounds1[0];
+    var extreme2 = bounds2[2];
 
     // boundaries are a "path" of points, one per slice,
     // that bound the item from one direction
-    var boundary1 = getBoundaryPointsForSlices(pathsLeft, extreme1, yValues, sortRight),
-        boundary2 = getBoundaryPointsForSlices(pathsRight, extreme2, yValues, sortLeft);
+    var boundary1 = getBoundaryPointsForSlices(pathsLeft, extreme1, yValues, sortRight);
+    var boundary2 = getBoundaryPointsForSlices(pathsRight, extreme2, yValues, sortLeft);
 
     var touchDistance = getMinDistanceBetweenMatchedPoints(boundary1, boundary2);
 

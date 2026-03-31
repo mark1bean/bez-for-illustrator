@@ -168,8 +168,8 @@ if ('undefined' === typeof Bez) {
      */
     function convertIntervalsToCumulativePositions(intervals) {
 
-        var positions = [],
-            pos = 0;
+        var positions = [];
+        var pos = 0;
 
         for (var i = 0; i < intervals.length; i++) {
             pos += intervals[i];
@@ -230,8 +230,8 @@ function example2() {
  */
 function example3() {
 
-    var values = [],
-        userValues = (prompt('Enter position values in range -1..1, separated by commas:', '0.45, 0.5, 0.55') || '').split(/,\s*/g);
+    var values = [];
+    var userValues = (prompt('Enter position values in range -1..1, separated by commas:', '0.45, 0.5, 0.55') || '').split(/,\s*/g);
 
     for (var i = 0; i < userValues.length; i++) {
 
@@ -262,8 +262,8 @@ function example3() {
  */
 function example4() {
 
-    var lengths = [],
-        userValues = (prompt('Enter lengths, in pts, separated by commas:', '25, 50, -25, -50') || '').split(/,\s*/g);
+    var lengths = [];
+    var userValues = (prompt('Enter lengths, in pts, separated by commas:', '25, 50, -25, -50') || '').split(/,\s*/g);
 
     for (var i = 0; i < userValues.length; i++) {
 
@@ -313,8 +313,8 @@ function onlyCurvedSegmentsLargerThan(curveThreshold) {
 
     return function (p1, p2, segmentLength, distance, numberOfPoints, bounds) {
 
-        var d1 = distanceBetweenPoints(p1.rightDirection, p1.anchor),
-            d2 = distanceBetweenPoints(p2.leftDirection, p2.anchor);
+        var d1 = distanceBetweenPoints(p1.rightDirection, p1.anchor);
+        var d2 = distanceBetweenPoints(p2.leftDirection, p2.anchor);
 
         return (
             Math.abs(d1) > curveThreshold
@@ -418,48 +418,39 @@ function showUI(settings) {
             message: 'Enter numbers, separated by comma. Example: "10,20" will add points at 10 units and 20 units.',
             hasUnits: true,
         }
-    ],
-
-        whatLabels = [
-            'Divide Entire Path',
-            'Divide Every Segment',
-        ],
-
-        howLabels = [
-            // will be populated from data
-        ],
-
-        unitLabels = [
-            'pt',
-            'mm',
-            'cm',
-            'in',
-        ],
-
-        columnWidth = 180,
-
-        // flag to override value with example value
-        canOverride,
-
-        // set up the window
-        w = new Window("dialog { text:'Add Points by m1b', properties:{ resizeable:true } }"),
-
-        // user input view
-        dropdowns = w.add("Group { orientation: 'row', alignment: ['fill','fill'] }"),
-        whatMenu = dropdowns.add("Dropdownlist {alignment:['right','center'] }"),
-        howMenu = dropdowns.add("Dropdownlist {alignment:['right','top'] }"),
-        valueField = dropdowns.add("EditText { text:'', alignment:['fill','top'] }"),
-
-        tipGroup = w.add("Group {orientation:'row', alignment:['fill','fill'], margins:[5,0,5,0] }"),
-        helpMessage = tipGroup.add("Statictext { text:'', justify:'left', preferredSize:[-1,50], alignment:['fill','top'], properties:{ multiline: true } }"),
-
-        bottomUI = w.add("group {orientation:'row', alignment:['fill','fill'], margins:[0,1,0,0] }"),
-        aux = bottomUI.add("group {orientation:'row', alignment:['fill','bottom'], alignChildren:'left', margins:[5,0,5,0] }"),
-        unitLabel = aux.add("Statictext { text:'Units:', justify:'left', alignment:['left','center'] }"),
-        unitMenu = aux.add("Dropdownlist {alignment:['left','center'] }"),
-        buttons = bottomUI.add("group {orientation:'row', alignment:['right','center'], alignChildren:'right' }"),
-        cancelButton = buttons.add("Button { text: 'Cancel', properties: {name:'cancel'} }"),
-        okayButton = buttons.add("Button { text:'Divide', enabled: true, properties: {name:'ok'} }");
+    ];
+    var whatLabels = [
+        'Divide Entire Path',
+        'Divide Every Segment',
+    ];
+    var howLabels = [
+        // will be populated from data
+    ];
+    var unitLabels = [
+        'pt',
+        'mm',
+        'cm',
+        'in',
+    ];
+    var columnWidth = 180;
+    // flag to override value with example value
+var        canOverride;
+    // set up the window
+var        w = new Window("dialog { text:'Add Points by m1b', properties:{ resizeable:true } }");
+    // user input view
+var        dropdowns = w.add("Group { orientation: 'row', alignment: ['fill','fill'] }");
+    var whatMenu = dropdowns.add("Dropdownlist {alignment:['right','center'] }");
+    var howMenu = dropdowns.add("Dropdownlist {alignment:['right','top'] }");
+    var valueField = dropdowns.add("EditText { text:'', alignment:['fill','top'] }");
+    var tipGroup = w.add("Group {orientation:'row', alignment:['fill','fill'], margins:[5,0,5,0] }");
+    var helpMessage = tipGroup.add("Statictext { text:'', justify:'left', preferredSize:[-1,50], alignment:['fill','top'], properties:{ multiline: true } }");
+    var bottomUI = w.add("group {orientation:'row', alignment:['fill','fill'], margins:[0,1,0,0] }");
+    var aux = bottomUI.add("group {orientation:'row', alignment:['fill','bottom'], alignChildren:'left', margins:[5,0,5,0] }");
+    var unitLabel = aux.add("Statictext { text:'Units:', justify:'left', alignment:['left','center'] }");
+    var unitMenu = aux.add("Dropdownlist {alignment:['left','center'] }");
+    var buttons = bottomUI.add("group {orientation:'row', alignment:['right','center'], alignChildren:'right' }");
+    var cancelButton = buttons.add("Button { text: 'Cancel', properties: {name:'cancel'} }");
+    var okayButton = buttons.add("Button { text:'Divide', enabled: true, properties: {name:'ok'} }");
 
     valueField.preferredSize.width = columnWidth;
     valueField.minimumSize.width = columnWidth;

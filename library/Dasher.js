@@ -29,7 +29,8 @@ function Dasher(pattern) {
     self.pattern = pattern;
 
     // total length of one repetition
-    var sum = 0, i = pattern.length;
+    var sum = 0;
+    var i = pattern.length;
 
     while (i--)
         sum += pattern[i];
@@ -59,11 +60,11 @@ Dasher.prototype.basicPatternForLength = function (len, omitFinalLength) {
     )
         return;
 
-    var self = this,
-        pattern = this.pattern,
-        advance = 0,
-        index = 0,
-        result = [];
+    var self = this;
+    var pattern = this.pattern;
+    var advance = 0;
+    var index = 0;
+    var result = [];
 
     while (advance < len) {
         result.push(pattern[index]);
@@ -113,37 +114,33 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash, om
     )
         return;
 
-    var pattern = this.pattern,
-        patternSum = this.sum,
-        patternLength = pattern.length,
-
-        // length of first dash
-        firstLength = dontSplitFirstDash === true ? 0 : pattern[0],
-
-        // start and end are half the first dash
-        // unless dontSplitStartDash is true
-        start = firstLength / 2,
-        end = start,
-        result = [],
-
-        // the space between the start and end lengths
-        middleMaxWidth = len - start - end,
-
-        // calculate the number of repetitions
-        r = len / patternSum,
-        rf = Math.floor(r),
-        rc = Math.ceil(r),
-        scaleUp = (len - firstLength) / ((patternSum * rf) - firstLength),
-        scaleDown = ((patternSum * rc) - firstLength) / (len - firstLength),
-        reps = scaleUp > scaleDown ? rc : rf;
+    var pattern = this.pattern;
+    var patternSum = this.sum;
+    var patternLength = pattern.length;
+    // length of first dash
+    var firstLength = dontSplitFirstDash === true ? 0 : pattern[0];
+    // start and end are half the first dash
+    // unless dontSplitStartDash is true
+    var start = firstLength / 2;
+    var end = start;
+    var result = [];
+    // the space between the start and end lengths
+    var middleMaxWidth = len - start - end;
+    // calculate the number of repetitions
+    var r = len / patternSum;
+    var rf = Math.floor(r);
+    var rc = Math.ceil(r);
+    var scaleUp = (len - firstLength) / ((patternSum * rf) - firstLength);
+    var scaleDown = ((patternSum * rc) - firstLength) / (len - firstLength);
+    var reps = scaleUp > scaleDown ? rc : rf;
 
     // can't have zero reps
     if (reps == 0)
         reps = 1;
 
     // calculate scale
-    var middleWidth = patternSum * reps - firstLength,
-        scaleFactor = middleMaxWidth / middleWidth;
+    var middleWidth = patternSum * reps - firstLength;
+    var scaleFactor = middleMaxWidth / middleWidth;
 
     // don't scale up more than 150%
     if (scaleFactor > 1.5) {
@@ -206,8 +203,8 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash, om
  */
 Dasher.getScaledRepetitions = function (pattern, scaleFactor, reps, dontSplitFirstDash) {
 
-    var scaledValues = [],
-        repeatScaledValues = [];
+    var scaledValues = [];
+    var repeatScaledValues = [];
 
     // scale the values
     for (var i = 0; i < pattern.length; i++)

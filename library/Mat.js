@@ -107,16 +107,16 @@ Mat.multiplyMatrices = function multiplyMatrices(matrices) {
         throw Error('Mat.multiplyMatrices: no matrices supplied.');
 
     // initialize result matrix
-    var result,
-        len = matrices.length - 1;
+    var result;
+    var len = matrices.length - 1;
 
     // multiply each subsequent matrix with the result matrix
     for (var i = len; i >= 0; i--) {
         // for (var i = 0; i < matrices.length; i++) {
 
-        var m = matrices[i],
-            rowCount = m.length,
-            columnCount = m[0].length;
+        var m = matrices[i];
+        var rowCount = m.length;
+        var columnCount = m[0].length;
 
         if (
             rowCount !== 3
@@ -227,9 +227,9 @@ Mat.transformPaths = function transformPaths(options) {
 
     options = options || {};
 
-    var paths = options.paths.slice(),
-        mainTransform = options.matrix,
-        netTranslation = options.netTranslationVector;
+    var paths = options.paths.slice();
+    var mainTransform = options.matrix;
+    var netTranslation = options.netTranslationVector;
 
     pathsLoop:
     for (var i = 0, l = paths.length; i < l; i++) {
@@ -306,11 +306,11 @@ Mat.invertMatrix3x3 = function invertMatrix3x3(matrix) {
     )
         throw Error('Mat.invertMatrix: bad `matrix` supplied.');
 
-    var m = matrix,
-        determinant =
-            m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2])
-            - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
-            + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    var m = matrix;
+    var determinant =
+        m[0][0] * (m[1][1] * m[2][2] - m[2][1] * m[1][2])
+        - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+        + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
 
     if (0 === determinant)
         // not invertible!
@@ -378,8 +378,8 @@ Mat.transformPathItem = function transformPathItem(options) {
 
     options = options || {};
 
-    var item = options.item,
-        matrix = options.matrix;
+    var item = options.item;
+    var matrix = options.matrix;
 
     for (var i = 0, p, l = item.pathPoints.length; i < l; i++)
         Mat.transformPathPoint(item.pathPoints[i], matrix);

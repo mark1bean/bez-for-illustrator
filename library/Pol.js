@@ -118,8 +118,8 @@ Pol.prototype.containsPoint = function containsPoint(point) {
  */
 Pol.pathContainsPoint = function containsPoint(paths, point) {
 
-    var x = point[0],
-        y = point[1];
+    var x = point[0];
+    var y = point[1];
 
     if ('Number' === paths[0][0].constructor.name)
         // if path is singular, put it into array
@@ -128,20 +128,19 @@ Pol.pathContainsPoint = function containsPoint(paths, point) {
     pathsLoop:
     for (var k = 0; k < paths.length; k++) {
 
-        var path = paths[k],
-            inside = false;
+        var path = paths[k];
+        var inside = false;
 
         for (var i = 0, j = path.length - 1; i < path.length; j = i++) {
 
-            var xi = path[i][0],
-                yi = path[i][1],
-                xj = path[j][0],
-                yj = path[j][1],
-
-                intersect = (
-                    ((yi > y) !== (yj > y))
-                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
-                );
+            var xi = path[i][0];
+            var yi = path[i][1];
+            var xj = path[j][0];
+            var yj = path[j][1];
+            var intersect = (
+                ((yi > y) !== (yj > y))
+                && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+            );
 
             if (intersect)
                 inside = !inside;
@@ -177,15 +176,15 @@ Pol.prototype.getCentroid = function getMyCentroid() {
  */
 Pol.getCentroidForPath = function getCentroidForPath(path) {
 
-    var area = 0,
-        x = 0,
-        y = 0;
+    var area = 0;
+    var x = 0;
+    var y = 0;
 
     for (var i = 0, len = path.length, j = len - 1; i < len; j = i++) {
 
-        var a = path[i],
-            b = path[j],
-            f = a[0] * b[1] - b[0] * a[1];
+        var a = path[i];
+        var b = path[j];
+        var f = a[0] * b[1] - b[0] * a[1];
 
         x += (a[0] + b[0]) * f;
         y += (a[1] + b[1]) * f;
@@ -201,8 +200,8 @@ Pol.getCentroidForPath = function getCentroidForPath(path) {
 };
 
 /**
- * desc
- * @date 2024-01-27
+ * Draw the Pol as a PathItem or CompoundPathItem.
+ * @version 2024-01-27
  * @param {Object} options
  * @param {Document} options.doc - an Illustrator Document
  * @param {Array<Array<point>>} options.paths - a paths/points array.
@@ -216,13 +215,13 @@ Pol.draw = function polDraw(options) {
 
     options = options || {};
 
-    var doc = options.doc,
-        container = options.container,
-        paths = options.paths,
-        pathsClosed = options.pathsClosed || [],
-        pageItem = options.pageItem,
-        drawAsCompoundPathItem = options.drawAsCompoundPathItem !== false,
-        select = options.select === true;
+    var doc = options.doc;
+    var container = options.container;
+    var paths = options.paths;
+    var pathsClosed = options.pathsClosed || [];
+    var pageItem = options.pageItem;
+    var drawAsCompoundPathItem = options.drawAsCompoundPathItem !== false;
+    var select = options.select === true;
 
     if (doc == undefined)
         throw Error('Pol.draw failed: no `doc` parameter.');
@@ -242,9 +241,9 @@ Pol.draw = function polDraw(options) {
     )
         throw Error('Pol.draw failed: bad `pathsClosed` parameter.');
 
-    var container = options.container || doc.activeLayer,
-        location,
-        drawnItems = [];
+    var container = options.container || doc.activeLayer;
+    var location;
+    var drawnItems = [];
 
     var makeCompoundPath = paths.length > 1 && drawAsCompoundPathItem == true;
 
@@ -278,10 +277,9 @@ Pol.draw = function polDraw(options) {
     pathsLoop:
     for (var i = pathsCount; i >= 0; i--) {
 
-        var points = paths[i],
-
-            // create a path item
-            item = location.pathItems.add();
+        var points = paths[i];
+        // create a path item
+        var item = location.pathItems.add();
 
         // add the pathPoints
         addPathPointsLoop:
@@ -350,12 +348,11 @@ Pol.draw = function polDraw(options) {
 Pol.findRotationByMinimalBounds = function findRotationByMinimalBounds(item) {
 
     // we will rotate a copy and leave the original
-    var workingItem = item.duplicate(),
-
-        convergenceThreshold = 0.001,
-        inc = 45, // the starting rotation increment
-        rotationAmount = 0,
-        prevArea = area(workingItem);
+    var workingItem = item.duplicate();
+    var convergenceThreshold = 0.001;
+    var inc = 45; // the starting rotation increment
+    var rotationAmount = 0;
+    var prevArea = area(workingItem);
 
     while (Math.abs(inc) >= convergenceThreshold) {
 
@@ -403,32 +400,29 @@ Pol.prototype.drawPathIndicators = function (options) {
 
     options = options || {};
 
-    var self = this,
-        size = options.size || 2,
-
-        pink = getPink(),
-        cyan = getCyan(),
-
-        firstPointAppearance = {
-            filled: false,
-            stroked: true,
-            strokeWidth: 0.5,
-            strokeColor: pink,
-            strokeDashes: [],
-        },
-
-        secondPointAppearance = {
-            filled: false,
-            stroked: true,
-            strokeWidth: 0.5,
-            strokeColor: cyan,
-            strokeDashes: [],
-        };
+    var self = this;
+    var size = options.size || 2;
+    var pink = getPink();
+    var cyan = getCyan();
+    var firstPointAppearance = {
+        filled: false,
+        stroked: true,
+        strokeWidth: 0.5,
+        strokeColor: pink,
+        strokeDashes: [],
+    };
+    var secondPointAppearance = {
+        filled: false,
+        stroked: true,
+        strokeWidth: 0.5,
+        strokeColor: cyan,
+        strokeDashes: [],
+    };
 
     for (var i = 0; i < self.paths.length; i++) {
 
-        var p1 = self.point(i, 0),
-            p2 = self.point(i, 1);
+        var p1 = self.point(i, 0);
+        var p2 = self.point(i, 1);
 
         // draw a circle at the first point
         Pol.drawCircle(self.doc, p1.anchor, size, firstPointAppearance);
@@ -527,12 +521,12 @@ Pol.prototype.reverse = function reverse(options) {
 
     options = options || {};
 
-    var self = this,
-        pathIndex = options.pathIndex,
-        start = 0,
-        end = self.paths.length,
-        redraw = options.redraw !== false,
-        isSelected = self.pathItems[pathIndex || 0].selected == true;
+    var self = this;
+    var pathIndex = options.pathIndex;
+    var start = 0;
+    var end = self.paths.length;
+    var redraw = options.redraw !== false;
+    var isSelected = self.pathItems[pathIndex || 0].selected == true;
 
     if (
         pathIndex != undefined
@@ -549,10 +543,10 @@ Pol.prototype.reverse = function reverse(options) {
     pathsLoop:
     for (var i = start; i < end; i++) {
 
-        var points = self.paths[i].slice(),
-            closed = self.pathsClosed[i],
-            pointsCount = points.length,
-            newPoints = [];
+        var points = self.paths[i].slice();
+        var closed = self.pathsClosed[i];
+        var pointsCount = points.length;
+        var newPoints = [];
 
         points.reverse();
 
@@ -593,8 +587,8 @@ Pol.prototype.reverse = function reverse(options) {
  */
 Pol.prototype.closestToPoint = function closestToPoint(point) {
 
-    var self = this,
-        p = point;
+    var self = this;
+    var p = point;
 
     if (p.hasOwnProperty('anchor'))
         p = p.anchor;
@@ -613,8 +607,8 @@ Pol.prototype.closestToPoint = function closestToPoint(point) {
     }
     for (i = 0; i < self.paths.length; i++)
         for (j = 0; j < self.paths[i].length; j++) {
-            var p1 = self.paths[i][j],
-                d = distanceBetweenPoints(p, p1);
+                        var p1 = self.paths[i][j];
+            var d = distanceBetweenPoints(p, p1);
             if (d < closest.distance) {
                 closest.distance = d;
                 closest.point = p1;
@@ -640,10 +634,10 @@ Pol.prototype.setFirstPoint = function setFirstPoint(options) {
 
     options = options || {};
 
-    var self = this,
-        pathIndex = options.pathIndex || 0,
-        pointIndex = options.pointIndex,
-        isSelected = self.pathItems[pathIndex || 0].selected == true;
+    var self = this;
+    var pathIndex = options.pathIndex || 0;
+    var pointIndex = options.pointIndex;
+    var isSelected = self.pathItems[pathIndex || 0].selected == true;
 
     if (
         pathIndex == undefined
@@ -669,8 +663,8 @@ Pol.prototype.setFirstPoint = function setFirstPoint(options) {
  */
 Pol.prototype.getIndicesOfPoint = function getIndicesOfPoint(point) {
 
-    var self = this,
-        indices;
+    var self = this;
+    var indices;
 
     for (i = 0; i < self.paths.length; i++)
         for (j = 0; j < self.paths[i].length; j++)
@@ -717,12 +711,12 @@ Pol.draw = function polDraw(options) {
 
     options = options || {};
 
-    var doc = options.doc,
-        paths = options.paths,
-        pathsClosed = options.pathsClosed || [],
-        pageItem = options.pageItem,
-        drawAsCompoundPathItem = options.drawAsCompoundPathItem !== false,
-        select = options.select === true;
+    var doc = options.doc;
+    var paths = options.paths;
+    var pathsClosed = options.pathsClosed || [];
+    var pageItem = options.pageItem;
+    var drawAsCompoundPathItem = options.drawAsCompoundPathItem !== false;
+    var select = options.select === true;
 
     if (doc == undefined)
         throw Error('Pol.draw failed: no `doc` parameter.');
@@ -745,9 +739,9 @@ Pol.draw = function polDraw(options) {
     // if (select)
     //     doc.selection = [];
 
-    var container = options.container || doc.activeLayer,
-        location,
-        drawnItems = [];
+    var container = options.container || doc.activeLayer;
+    var location;
+    var drawnItems = [];
 
     var makeCompoundPath = paths.length > 1 && drawAsCompoundPathItem == true;
     var createNewPageItem = pageItem == undefined
@@ -780,10 +774,10 @@ Pol.draw = function polDraw(options) {
     pathsLoop:
     for (var i = pathsCount; i >= 0; i--) {
 
-        var points = paths[i],
+        var points = paths[i];
 
-            // create a path item
-            item = location.pathItems.add();
+        // create a path item
+        var item = location.pathItems.add();
 
         // add the pathPoints
         addPathPointsLoop:
@@ -849,11 +843,11 @@ Pol.draw = function polDraw(options) {
  */
 Pol.prototype.updatePageItem = function updatePageItem() {
 
-    var self = this,
-        doc = self.doc,
-        pageItem = self.pageItem,
-        paths = self.paths,
-        pathsClosed = self.pathsClosed;
+    var self = this;
+    var doc = self.doc;
+    var pageItem = self.pageItem;
+    var paths = self.paths;
+    var pathsClosed = self.pathsClosed;
 
     if (doc == undefined)
         throw Error('Pol.updatePageItem failed: no `doc` parameter.');
@@ -898,8 +892,8 @@ Pol.prototype.updatePageItem = function updatePageItem() {
 
     }
 
-    var pathItems,
-        pathsCount = paths.length;
+    var pathItems;
+    var pathsCount = paths.length;
 
     if (pageItem.constructor.name == 'CompoundPathItem') {
         // adjust the number of path items
@@ -916,9 +910,9 @@ Pol.prototype.updatePageItem = function updatePageItem() {
     pathsLoop:
     for (var i = 0; i < pathsCount; i++) {
 
-        var item = pathItems[i],
-            points = paths[i],
-            pointsCount = paths[i].length;
+        var item = pathItems[i];
+        var points = paths[i];
+        var pointsCount = paths[i].length;
 
         // ensure pathItem has the correct number of pathPoints
         while (item.pathPoints.length < pointsCount)
@@ -1067,14 +1061,14 @@ Pol.prototype.rotate = function rotate(options) {
 
     options = options || {};
 
-    var self = this,
-        angle = Number(options.angle),
-        paths = options.paths || self.paths,
-        transformPositionType = options.transformPositionType || BezTransformPositionType.CENTER,
-        rotationType = options.rotationType || BezRotationType.NORMAL,
-        angleOffset = Number(options.angleOffset || 0),
-        transformPoint = options.transformPoint,
-        redraw = options.redraw === true;
+    var self = this;
+    var angle = Number(options.angle);
+    var paths = options.paths || self.paths;
+    var transformPositionType = options.transformPositionType || BezTransformPositionType.CENTER;
+    var rotationType = options.rotationType || BezRotationType.NORMAL;
+    var angleOffset = Number(options.angleOffset || 0);
+    var transformPoint = options.transformPoint;
+    var redraw = options.redraw === true;
 
     if (
         angle == undefined
@@ -1162,9 +1156,10 @@ Pol.prototype.getRotationDatum = function getRotationDatum(reverse, pathIndex) {
 
     pathIndex = pathIndex || self.paths.length - 1;
 
-    var points = self.paths[pathIndex],
-        closed = self.pathsClosed[pathIndex],
-        p1, p2;
+    var points = self.paths[pathIndex];
+    var closed = self.pathsClosed[pathIndex];
+    var p1;
+    var p2;
 
     if (reverse === true && closed) {
         // closed path, use the last and first points
@@ -1207,26 +1202,26 @@ Pol.prototype.scale = function scale(options) {
 
     options = options || {};
 
-    var self = this,
-        scaleFactor = options.scaleFactor,
-        points = options.paths || self.paths,
-        transformPositionType = options.transformPositionType || BezTransformPositionType.CENTER,
-        scaleType = options.scaleType || BezScaleType.SCALE_BY_FACTOR,
-        scaleFactorOffset = options.scaleFactorOffset || [1, 1],
-        transformPoint = options.transformPoint,
-        box = options.box,
-        boxFittingStrokeWidth = options.boxFittingStrokeWidth,
-        scaleFunction = options.scaleFunction,
-        filter = options.filter,
-        selectedPointsOnly = options.selectedPointsOnly === true,
-        redraw = options.redraw !== false,
-        isSelected = self.pageItem && self.pageItem.selected == true,
-        bounds = self.getBounds(),
-        isBoxTypeScaling = (
-            scaleType == BezScaleType.FIT_BOX
-            || scaleType == BezScaleType.FILL_BOX
-            || scaleType == BezScaleType.STRETCH
-        );
+    var self = this;
+    var scaleFactor = options.scaleFactor;
+    var points = options.paths || self.paths;
+    var transformPositionType = options.transformPositionType || BezTransformPositionType.CENTER;
+    var scaleType = options.scaleType || BezScaleType.SCALE_BY_FACTOR;
+    var scaleFactorOffset = options.scaleFactorOffset || [1, 1];
+    var transformPoint = options.transformPoint;
+    var box = options.box;
+    var boxFittingStrokeWidth = options.boxFittingStrokeWidth;
+    var scaleFunction = options.scaleFunction;
+    var filter = options.filter;
+    var selectedPointsOnly = options.selectedPointsOnly === true;
+    var redraw = options.redraw !== false;
+    var isSelected = self.pageItem && self.pageItem.selected == true;
+    var bounds = self.getBounds();
+    var isBoxTypeScaling = (
+        scaleType == BezScaleType.FIT_BOX
+        || scaleType == BezScaleType.FILL_BOX
+        || scaleType == BezScaleType.STRETCH
+    );
 
     if (
         isBoxTypeScaling
@@ -1260,8 +1255,8 @@ Pol.prototype.scale = function scale(options) {
         pointsLoop:
         for (var j = 0; j < points[i].length; j++) {
 
-            var p = points[i][j],
-                skipThisPoint = false;
+            var p = points[i][j];
+            var skipThisPoint = false;
 
             if (
                 selectedPointsOnly
@@ -1377,21 +1372,21 @@ Pol.prototype.translate = function translate(options) {
 
     options = options || {};
 
-    var self = this,
-        translation = options.translation,
-        points = options.paths || self.paths,
-        transformPositionType = options.transformPositionType,
-        alignMyPoint = options.alignMyPoint,
-        alignToPoint = options.alignToPoint,
-        alignToBox = options.alignToBox,
-        translationOffset = options.translationOffset || [0, 0],
-        translateFunction = options.translateFunction,
-        filter = options.filter,
-        selectedPointsOnly = options.selectedPointsOnly === true,
-        redraw = options.redraw !== false,
-        isSelected = self.pageItem && self.pageItem.selected == true,
-        myBounds = self.getBounds(),
-        bounds = transformPositionType != undefined ? myBounds : undefined;
+    var self = this;
+    var translation = options.translation;
+    var points = options.paths || self.paths;
+    var transformPositionType = options.transformPositionType;
+    var alignMyPoint = options.alignMyPoint;
+    var alignToPoint = options.alignToPoint;
+    var alignToBox = options.alignToBox;
+    var translationOffset = options.translationOffset || [0, 0];
+    var translateFunction = options.translateFunction;
+    var filter = options.filter;
+    var selectedPointsOnly = options.selectedPointsOnly === true;
+    var redraw = options.redraw !== false;
+    var isSelected = self.pageItem && self.pageItem.selected == true;
+    var myBounds = self.getBounds();
+    var bounds = transformPositionType != undefined ? myBounds : undefined;
 
     if (
         alignMyPoint != undefined
@@ -1448,8 +1443,8 @@ Pol.prototype.translate = function translate(options) {
         pointsLoop:
         for (var j = 0; j < points[i].length; j++) {
 
-            var p = points[i][j],
-                skipThisPoint = false;
+            var p = points[i][j];
+            var skipThisPoint = false;
 
             if (
                 selectedPointsOnly
@@ -1513,10 +1508,10 @@ Pol.prototype.getCoordinatesOfTransformPoint = function getCoordinatesOfTransfor
 
     options = options || {};
 
-    var self = this,
-        transformPoint = options.transformPoint,
-        transformPositionType = options.transformPositionType,
-        tp;
+    var self = this;
+    var transformPoint = options.transformPoint;
+    var transformPositionType = options.transformPositionType;
+    var tp;
 
     // 1. try to resolve tp for supplied `transformPoint`
 
@@ -1603,10 +1598,10 @@ Pol.getPolygonArea = function getPolygonArea(path) {
 
     for (var i = 0, l = path.length; i < l; i++) {
 
-        var addX = path[i][0],
-            addY = path[i == path.length - 1 ? 0 : i + 1][1],
-            subX = path[i == path.length - 1 ? 0 : i + 1][0],
-            subY = path[i][1];
+        var addX = path[i][0];
+        var addY = path[i == path.length - 1 ? 0 : i + 1][1];
+        var subX = path[i == path.length - 1 ? 0 : i + 1][0];
+        var subY = path[i][1];
 
         area += (addX * addY * 0.5);
         area -= (subX * subY * 0.5);
@@ -1648,10 +1643,10 @@ Pol.getBounds = function getBounds(polygons) {
 
     var points = concatPaths(polygons);
 
-    var left = Infinity,
-        top = -Infinity,
-        right = -Infinity,
-        bottom = Infinity;
+    var left = Infinity;
+    var top = -Infinity;
+    var right = -Infinity;
+    var bottom = Infinity;
 
     for (var i = 0; i < points.length; i++) {
 

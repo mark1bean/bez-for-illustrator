@@ -34,10 +34,9 @@ if ('undefined' === typeof Dasher) {
      */
     function convertSelectedDashedStrokes(options) {
 
-        var doc = app.activeDocument,
-
-            // get all the pathItems in the selection
-            items = itemsInsideGroupItems(doc.selection, ['PathItem', 'CompoundPathItem']);
+        var doc = app.activeDocument;
+        // get all the pathItems in the selection
+        var items = itemsInsideGroupItems(doc.selection, ['PathItem', 'CompoundPathItem']);
 
         for (var i = 0; i < items.length; i++) {
 

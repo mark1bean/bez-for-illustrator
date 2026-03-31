@@ -159,9 +159,9 @@ function intermediatePoint(p1, p2, t) {
  */
 function distanceFromSegment(fromPoint, p1, p2) {
 
-    var p = fromPoint,
-        s = p1,
-        e = p2;
+    var p = fromPoint;
+    var s = p1;
+    var e = p2;
 
     if (p.hasOwnProperty('anchor'))
         p = p.anchor;
@@ -209,8 +209,8 @@ function distanceFromSegment(fromPoint, p1, p2) {
  */
 function squareDistanceBetweenPoints(p1, p2) {
 
-    var a = p1[0] - p2[0],
-        b = p1[1] - p2[1];
+    var a = p1[0] - p2[0];
+    var b = p1[1] - p2[1];
 
     return a * a + b * b;
 
@@ -225,8 +225,8 @@ function squareDistanceBetweenPoints(p1, p2) {
  */
 function distanceBetweenPoints(p1, p2) {
 
-    var a = p1[0] - p2[0],
-        b = p1[1] - p2[1];
+    var a = p1[0] - p2[0];
+    var b = p1[1] - p2[1];
 
     return Math.sqrt(a * a + b * b);
 
@@ -265,8 +265,8 @@ function differenceBetweenPoints(p1, p2) {
  */
 function angleBetweenPoints(p1, p2, asRadians) {
 
-    var delta = differenceBetweenPoints(p1, p2),
-        theta = Math.atan2(-delta[1], -delta[0]); // radians
+    var delta = differenceBetweenPoints(p1, p2);
+    var theta = Math.atan2(-delta[1], -delta[0]); // radians
 
     if (asRadians)
         return theta;
@@ -285,11 +285,11 @@ function angleBetweenPoints(p1, p2, asRadians) {
  */
 function getAngleABC(a, b, c) {
 
-    var ab = [b[0] - a[0], b[1] - a[1]],
-        cb = [b[0] - c[0], b[1] - c[1]],
-        dot = (ab[0] * cb[0] + ab[1] * cb[1]),
-        cross = (ab[0] * cb[1] - ab[1] * cb[0]),
-        alpha = Math.atan2(cross, dot);
+    var ab = [b[0] - a[0], b[1] - a[1]];
+    var cb = [b[0] - c[0], b[1] - c[1]];
+    var dot = (ab[0] * cb[0] + ab[1] * cb[1]);
+    var cross = (ab[0] * cb[1] - ab[1] * cb[0]);
+    var alpha = Math.atan2(cross, dot);
 
     return alpha * 180 / Math.PI;
 
@@ -306,17 +306,17 @@ function getAngleABC(a, b, c) {
  */
 function getScaleFactorForBoxFitting(scaleType, bounds, box, strokeWidth) {
 
-    var scaleType = scaleType || BezScaleType.FIT_BOX,
-        scaleFactor = [1, 1],
-        strokeWidth = strokeWidth || 0,
-        boxWidth = box[2] - box[0],
-        boxHeight = -(box[3] - box[1]),
-        itemWidth = bounds[2] - bounds[0],
-        itemHeight = -(bounds[3] - bounds[1]),
-        boxCenter = [box[0] + boxWidth / 2, box[1] - boxHeight / 2],
-        itemCenter = [bounds[0] + itemWidth / 2, bounds[1] - itemHeight / 2],
-        boxRatio = boxWidth / boxHeight,
-        itemRatio = itemWidth / itemHeight;
+    var scaleType = scaleType || BezScaleType.FIT_BOX;
+    var scaleFactor = [1, 1];
+    var strokeWidth = strokeWidth || 0;
+    var boxWidth = box[2] - box[0];
+    var boxHeight = -(box[3] - box[1]);
+    var itemWidth = bounds[2] - bounds[0];
+    var itemHeight = -(bounds[3] - bounds[1]);
+    var boxCenter = [box[0] + boxWidth / 2, box[1] - boxHeight / 2];
+    var itemCenter = [bounds[0] + itemWidth / 2, bounds[1] - itemHeight / 2];
+    var boxRatio = boxWidth / boxHeight;
+    var itemRatio = itemWidth / itemHeight;
 
     if (BezScaleType.FIT_BOX === scaleType) {
 
@@ -417,15 +417,15 @@ function compareArraysWithDifference(arr1, arr2, start, inc) {
     start = start || 0;
     inc = inc || 1;
 
-    var score = 0,
-        maxValue = -1,
-        maxDiff = 0,
-        len = Math.max(arr1.length, arr2.length);
+    var score = 0;
+    var maxValue = -1;
+    var maxDiff = 0;
+    var len = Math.max(arr1.length, arr2.length);
 
     for (var i = start; i < len; i += inc) {
 
-        var v1 = arr1[i] || 0,
-            v2 = arr2[i] || 0;
+        var v1 = arr1[i] || 0;
+        var v2 = arr2[i] || 0;
 
         maxDiff = Math.max(maxDiff, Math.abs(v1 - v2));
 
@@ -459,7 +459,8 @@ function compareArraysWithDifference(arr1, arr2, start, inc) {
  * @returns {Number}
  */
 function sum(arr) {
-    var s = 0, i = arr.length;
+    var s = 0;
+    var i = arr.length;
     while (i--) s += arr[i];
     return s;
 };

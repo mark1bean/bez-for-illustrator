@@ -15,8 +15,8 @@ if ('undefined' === typeof Bez) {
     if (typeof Bez === 'undefined')
         throw Error('Cannot find the required script file "Bez.js".');
 
-    var doc = app.activeDocument,
-        item = doc.selection[0];
+    var doc = app.activeDocument;
+    var item = doc.selection[0];
 
     if (
         doc.selection.length == 0
@@ -47,8 +47,8 @@ if ('undefined' === typeof Bez) {
 
         items = itemsInsideGroupItems(items, ['PathItem', 'CompoundPathItem']);
 
-        var bez = new Bez({ pageItem: item }),
-            found = [];
+        var bez = new Bez({ pageItem: item });
+        var found = [];
 
         for (var i = 0; i < items.length; i++) {
 

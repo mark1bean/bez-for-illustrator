@@ -21,13 +21,13 @@ if ('undefined' === typeof Bez) {
     if (typeof Bez === 'undefined')
         throw Error('Cannot find the required script file "Bez.js".');
 
-    var doc = app.activeDocument,
-        items = itemsInsideGroupItems(doc.selection, ['PathItem', 'CompoundPathItem']);
+    var doc = app.activeDocument;
+    var items = itemsInsideGroupItems(doc.selection, ['PathItem', 'CompoundPathItem']);
 
     for (var i = 0; i < items.length; i++) {
 
-        var group = doc.groupItems.add(),
-            bez = new Bez({ pageItem: items[i] });
+        var group = doc.groupItems.add();
+        var bez = new Bez({ pageItem: items[i] });
 
         bez.eachPoint({
             callback: drawArrow,
@@ -84,14 +84,13 @@ if ('undefined' === typeof Bez) {
          */
         function makeArrow(appearance) {
 
-            var x = p1.anchor[0],
-                y = p1.anchor[1],
-
-                points = [
-                    [-1 + x, 1 + y],
-                    [x, y],
-                    [-1 + x, -1 + y]
-                ];
+            var x = p1.anchor[0];
+            var y = p1.anchor[1];
+            var points = [
+                [-1 + x, 1 + y],
+                [x, y],
+                [-1 + x, -1 + y]
+            ];
 
             return new Bez(
                 {

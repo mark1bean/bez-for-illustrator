@@ -40,22 +40,22 @@ BezMath.getQ = function getQ(p1, p2) {
 BezMath.getK = function getK(q) {
 
     var m = [
-            q[3][0] - q[0][0] + 3 * (q[1][0] - q[2][0]),
-            q[0][0] - 2 * q[1][0] + q[2][0],
-            q[1][0] - q[0][0]
-        ],
-        n = [
-            q[3][1] - q[0][1] + 3 * (q[1][1] - q[2][1]),
-            q[0][1] - 2 * q[1][1] + q[2][1],
-            q[1][1] - q[0][1]
-        ],
-        k = [
-            m[0] * m[0] + n[0] * n[0],
-            4 * (m[0] * m[1] + n[0] * n[1]),
-            2 * ((m[0] * m[2] + n[0] * n[2]) + 2 * (m[1] * m[1] + n[1] * n[1])),
-            4 * (m[1] * m[2] + n[1] * n[2]),
-            m[2] * m[2] + n[2] * n[2]
-        ];
+        q[3][0] - q[0][0] + 3 * (q[1][0] - q[2][0]),
+        q[0][0] - 2 * q[1][0] + q[2][0],
+        q[1][0] - q[0][0]
+    ];
+    var n = [
+        q[3][1] - q[0][1] + 3 * (q[1][1] - q[2][1]),
+        q[0][1] - 2 * q[1][1] + q[2][1],
+        q[1][1] - q[0][1]
+    ];
+    var k = [
+        m[0] * m[0] + n[0] * n[0],
+        4 * (m[0] * m[1] + n[0] * n[1]),
+        2 * ((m[0] * m[2] + n[0] * n[2]) + 2 * (m[1] * m[1] + n[1] * n[1])),
+        4 * (m[1] * m[2] + n[1] * n[2]),
+        m[2] * m[2] + n[2] * n[2]
+    ];
 
     return k;
 
@@ -72,14 +72,12 @@ BezMath.getK = function getK(q) {
  */
 BezMath.getLength = function getLength(k, t) {
 
-    var h = t / 128,
-        hh = h * 2,
-
-        fc = function (t, k) {
-            return Math.sqrt(t * (t * (t * (t * k[0] + k[1]) + k[2]) + k[3]) + k[4]) || 0
-        },
-
-        total = (fc(0, k) - fc(t, k)) / 2;
+    var h = t / 128;
+    var hh = h * 2;
+    var fc = function (t, k) {
+        return Math.sqrt(t * (t * (t * (t * k[0] + k[1]) + k[2]) + k[3]) + k[4]) || 0
+    };
+    var total = (fc(0, k) - fc(t, k)) / 2;
 
     for (var i = h; i < t; i += hh)
         total += 2 * fc(i, k) + fc(i + h, k);
@@ -135,13 +133,25 @@ BezMath.getSegmentLength = function getSegmentLength(p1, p2) {
  */
 BezMath.getExtremaOfCurve = function getExtremaOfCurve(p1, p2) {
 
-    var q = BezMath.getQ(p1, p2),
-        tValues = [],
-        x0 = q[0][0], y0 = q[0][1],
-        x1 = q[1][0], y1 = q[1][1],
-        x2 = q[2][0], y2 = q[2][1],
-        x3 = q[3][0], y3 = q[3][1],
-        a, b, c, t, t1, t2, b2ac, sqrtb2ac;
+    var q = BezMath.getQ(p1, p2);
+    var tValues = [];
+    var x0 = q[0][0];
+    var y0 = q[0][1];
+    var x1 = q[1][0];
+    var y1 = q[1][1];
+    var x2 = q[2][0];
+    var y2 = q[2][1];
+    var x3 = q[3][0];
+    var y3 = q[3][1];
+
+    var a;
+    var b;
+    var c;
+    var t;
+    var t1;
+    var t2;
+    var b2ac;
+    var sqrtb2ac;
 
     for (var i = 0; i < 2; ++i) {
 
@@ -212,15 +222,15 @@ BezMath.getTValues = function getTValues(options) {
 
     options = options || {};
 
-    var p1 = options.p1,
-        p2 = options.p2,
-        distance = options.distance,
-        numberOfPoints = options.numberOfPoints,
-        values = options.values,
-        lengths = options.lengths,
-        spacingFunction = options.spacingFunction,
-        valueFunction = options.valueFunction,
-        bounds = options.bounds;
+    var p1 = options.p1;
+    var p2 = options.p2;
+    var distance = options.distance;
+    var numberOfPoints = options.numberOfPoints;
+    var values = options.values;
+    var lengths = options.lengths;
+    var spacingFunction = options.spacingFunction;
+    var valueFunction = options.valueFunction;
+    var bounds = options.bounds;
 
     if (
         distance == undefined
@@ -233,10 +243,10 @@ BezMath.getTValues = function getTValues(options) {
     if (distance === 0)
         distance = Infinity
 
-    var tValues = [],
-        q = BezMath.getQ(p1, p2),
-        k = BezMath.getK(q),
-        segmentLength = BezMath.getLength(k, 1);
+    var tValues = [];
+    var q = BezMath.getQ(p1, p2);
+    var k = BezMath.getK(q);
+    var segmentLength = BezMath.getLength(k, 1);
 
     if (lengths == undefined) {
 
@@ -295,11 +305,11 @@ BezMath.getTValues = function getTValues(options) {
 
         options = options || {};
 
-        var segmentLength = options.segmentLength,
-            distance = options.distance,
-            numberOfPoints = Math.floor(segmentLength / distance),
-            adv = 0,
-            lengths = [];
+        var segmentLength = options.segmentLength;
+        var distance = options.distance;
+        var numberOfPoints = Math.floor(segmentLength / distance);
+        var adv = 0;
+        var lengths = [];
 
         if (numberOfPoints === 0)
             return;
@@ -324,10 +334,10 @@ BezMath.getTValues = function getTValues(options) {
 
         options = options || {};
 
-        var segmentLength = options.segmentLength,
-            numberOfPoints = options.numberOfPoints + 1,
-            adv = 0,
-            lengths = [];
+        var segmentLength = options.segmentLength;
+        var numberOfPoints = options.numberOfPoints + 1;
+        var adv = 0;
+        var lengths = [];
 
         for (var i = 0; i < numberOfPoints - 1; i++) {
             adv += segmentLength / numberOfPoints;
@@ -351,11 +361,9 @@ BezMath.getTValues = function getTValues(options) {
 
         options = options || {};
 
-        var segmentLength = options.segmentLength,
-            values = options.values,
-            q = options.q,
-            k = options.k,
-            lengths = [];
+        var segmentLength = options.segmentLength;
+        var values = options.values;
+        var lengths = [];
 
         for (var i = 0; i < values.length; i++)
             lengths.push(segmentLength * values[i]);
@@ -397,10 +405,11 @@ BezMath.tForLength = function tForLength(q, len, k) {
     else if (len > segmentLength)
         return 1;
 
-    var t, d,
-        t0 = 0,
-        t1 = 1,
-        tolerance = 0.001;
+    var t;
+    var d;
+    var t0 = 0;
+    var t1 = 1;
+    var tolerance = 0.001;
 
     for (var h = 1; h < 30; h++) {
 
@@ -441,7 +450,9 @@ BezMath.getAngleOfPointP1 = function getAngleOfPointP1(p1, p2, convertToPositive
     )
         return;
 
-    var t, pT, angle;
+    var t;
+    var pT;
+    var angle;
 
     if (reverseDirection === true) {
         t = 0.99;

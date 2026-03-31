@@ -95,8 +95,8 @@ if ('undefined' === typeof Bez) {
      */
     function example3() {
 
-        var values = [],
-            userValues = (prompt('Enter position values in range -1..1, separated by commas:', '0.45, 0.5, 0.55') || '').split(/,\s*/g);
+        var values = [];
+        var userValues = (prompt('Enter position values in range -1..1, separated by commas:', '0.45, 0.5, 0.55') || '').split(/,\s*/g);
 
         for (var i = 0; i < userValues.length; i++) {
 
@@ -128,8 +128,8 @@ if ('undefined' === typeof Bez) {
      */
     function example4() {
 
-        var lengths = [],
-            userValues = (prompt('Enter lengths, in pts, separated by commas:', '25, 50, -25, -50') || '').split(/,\s*/g);
+        var lengths = [];
+        var userValues = (prompt('Enter lengths, in pts, separated by commas:', '25, 50, -25, -50') || '').split(/,\s*/g);
 
         for (var i = 0; i < userValues.length; i++) {
 
@@ -184,8 +184,8 @@ if ('undefined' === typeof Bez) {
              */
             function (p1, p2,) {
 
-                var d1 = distanceBetweenPoints(p1.rightDirection, p1.anchor),
-                    d2 = distanceBetweenPoints(p2.leftDirection, p2.anchor);
+                                var d1 = distanceBetweenPoints(p1.rightDirection, p1.anchor);
+                var d2 = distanceBetweenPoints(p2.leftDirection, p2.anchor);
 
                 return (
                     Math.abs(d1) > curveThreshold
