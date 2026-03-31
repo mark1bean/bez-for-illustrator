@@ -2,16 +2,21 @@ if ('undefined' === typeof Bez) {
     //@include '../library/Bez.js'
 }
 
-
 /**
- * Example using Bez.forEach.
  * Draws an arrow at each anchor point,
  * oriented to the path direction.
+ *
+ * Demonstrates Bez.forEach and also
+ * see some Bez transforming and drawing
+ * in `makeArrow` and `drawArrow`.
+ *
  * @author m1b
- * @version 2023-01-07
+ * @version 2026-03-31
  * @requires Bez.js
  */
 (function () {
+
+    const ARROW_SCALE = 10;
 
     if (typeof Bez === 'undefined')
         throw Error('Cannot find the required script file "Bez.js".');
@@ -25,14 +30,13 @@ if ('undefined' === typeof Bez) {
             bez = new Bez({ pageItem: items[i] });
 
         bez.eachPoint({
-            fn: drawIndicator,
+            callback: drawArrow,
             selectedSegmentsOnly: false
         });
 
     }
 
     /**
-     * Example:
      * Draws arrows at each anchor point,
      * angled in the direction of the path.
      * @param {Document} doc
@@ -41,7 +45,7 @@ if ('undefined' === typeof Bez) {
      * @param {BezPoint} [p2] - the point after the current point.
      * @param {Number} i - the forEach iterator number.
      */
-    function drawIndicator(doc, p0, p1, p2, i) {
+    function drawArrow(doc, p0, p1, p2, i) {
 
         var angle = Bez.getAngleOfPointP1(p1, p2);
 
@@ -67,7 +71,7 @@ if ('undefined' === typeof Bez) {
 
         // transform but don't draw yet
         arrow.rotate({ angle: angle, redraw: false });
-        arrow.scale({ scaleFactor: 1.5, redraw: false });
+        arrow.scale({ scaleFactor: ARROW_SCALE, redraw: false });
 
         // now draw the arrow
         arrow.draw({ container: group });
@@ -98,7 +102,7 @@ if ('undefined' === typeof Bez) {
                 }
             );
 
-        }
+        };
 
     };
 

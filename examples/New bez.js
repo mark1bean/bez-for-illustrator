@@ -15,20 +15,16 @@ if ('undefined' === typeof Bez) {
 
     var doc = app.activeDocument;
 
-    // $.bp();
     var bez = new Bez(
         {
             paths: [
-                [
-                    [0, 0], [0, 12], [12, 12], [12, 0]
-                ]
+                [[0, 0], [0, 12], [12, 12], [12, 0]]
             ],
             pathsClosed: [true],
         }
     );
 
     bez.draw();
-    // Explr.init(bez);
 
 
 })();

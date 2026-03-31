@@ -217,7 +217,7 @@ function example2() {
     bez.addExtraPointsBetweenPoints(
         {
             numberOfPoints: numberOfPoints,
-            // filterFunction: Bez.isCurvedSegment,
+            // filter: Bez.isCurvedSegment,
         }
     );
 
@@ -301,12 +301,12 @@ function example5() {
 
 
 /**
- * Example custom filterFunction:
+ * Example custom filter:
  * Returns true only when the segment has control points
  * longer than `curveThreshold`.
  * Note: this function returns a function closure containing
  * the `curveThreshold` parameter. So *call* it (with curveThreshold
- * parameter) when you are passing the filterFunction.
+ * parameter) when you are passing the filter.
  * @returns {Boolean}
  */
 function onlyCurvedSegmentsLargerThan(curveThreshold) {
@@ -327,7 +327,7 @@ function onlyCurvedSegmentsLargerThan(curveThreshold) {
 
 
 /**
- * Example custom filterFunction:
+ * Example custom filter:
  * Returns true only when the line p1p2
  * is perfectly horizontal or vertical.
  * @returns {Boolean}

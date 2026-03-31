@@ -5,13 +5,12 @@
  * @version 2022-12-23
  * @requires Bez.js
 */
-if ('undefined' === typeof Bez) {
-    //@include '/Users/mark/Scripting/Illustrator/Projects/Bez/public/bez-for-illustrator/library/Bez.js'
-}
-(function () {
 
-    if (typeof Bez === 'undefined')
-        throw Error('Cannot find the required script file "Bez.js".');
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
+
+(function () {
 
     var settings = {
         drawWithSteps: false,
@@ -54,32 +53,30 @@ if ('undefined' === typeof Bez) {
     // see also Ease.js in ../libary
     function easeOutQuad(t) { return t * (2 - t) };
 
-})();
+    /** Returns `str` converted to an array of numbers. */
+    function getNumbers(str, delim) {
 
-/** Returns `str` converted to an array of numbers. */
-function getNumbers(str, delim) {
+        var parts = str.split(delim || ',');
+        var numbers = [];
 
-    var parts = str.split(delim || ',');
-    var numbers = [];
+        for (var i = 0, n; i < parts.length; i++) {
+            n = Number(parts[i]);
+            if (!isNaN(n))
+                numbers.push(n);
+        }
 
-    for (var i = 0, n; i < parts.length; i++) {
-        n = Number(parts[i]);
-        if (!isNaN(n))
-            numbers.push(n);
-    }
+        return numbers;
 
-    return numbers;
+    };
 
-};
-
-/**
- * User interface for this script. Will update the `settings` object.
- * @author m1b
- * @version 2026-02-22
- * @param {Object} settings - the script settings.
- * @returns {1|2}
- */
-function ui(settings) {
+    /**
+     * User interface for this script. Will update the `settings` object.
+     * @author m1b
+     * @version 2026-02-22
+     * @param {Object} settings - the script settings.
+     * @returns {1|2}
+     */
+    function ui(settings) {
 
     var w = new Window("dialog { text:'Interpolate Between Paths' }");
 
@@ -138,4 +135,6 @@ function ui(settings) {
     w.center();
     return w.show();
 
-};
+    };
+
+})();

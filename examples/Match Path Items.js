@@ -4,10 +4,8 @@ if ('undefined' === typeof Bez) {
 
 
 /**
- * Example using Bez `makeHash`
- * and `doesMatchItem` method,
- * to select all path items that
- * match the selected item.
+ * Example using Bez `makeHash` and `doesMatchItem` method,
+ * to select all path items that  match the selected item.
  * @author m1b
  * @version 2023-01-17
  * @requires Bez.js
@@ -27,10 +25,8 @@ if ('undefined' === typeof Bez) {
             item.typename != 'PathItem'
             && item.typename != 'CompoundPathItem'
         )
-    ) {
-        alert('Please select a Path Item to match and try again.');
-        return;
-    }
+    )
+        return alert('Please select a Path Item to match and try again.');
 
     // find matching path items
     var found = getPathItemsMatchingPathItem(item, doc.pageItems, 0.1, 0.1);
@@ -50,18 +46,14 @@ if ('undefined' === typeof Bez) {
     function getPathItemsMatchingPathItem(item, items, angleTolerance, lengthRatioTolerance) {
 
         items = itemsInsideGroupItems(items, ['PathItem', 'CompoundPathItem']);
-        // items = Mittens.getItems({from: items});
 
         var bez = new Bez({ pageItem: item }),
-            hash = bez.makeHash(),
             found = [];
 
         for (var i = 0; i < items.length; i++) {
 
             if (item.uuid === items[i].uuid)
                 continue;
-
-            debugger; // 2024-09-02
 
             if (bez.doesMatchItem({
                 pageItem: items[i],

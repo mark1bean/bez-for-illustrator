@@ -1132,7 +1132,7 @@ Pol.prototype.rotate = function rotate(options) {
  * @param {Number} [angleOffset] - an additional rotation (default: 0).
  * @param {Array<Number>} [transformPoint] - (default: pol.transformPoint)
  * @param {Function} [options.angleFunction] - a function, given the point, that modifies the angle for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given the point, that decides whether to rotate the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given the point, that decides whether to rotate the point (default: undefined).
  * @param {Boolean} [options.redraw] - whether to redraw the pol (default: true).
 */
 Pol.prototype.setAngle = function setAngle(options) {
@@ -1199,7 +1199,7 @@ Pol.prototype.getRotationDatum = function getRotationDatum(reverse, pathIndex) {
  * @param {Number} [options.scaleFactorOffset] - an additional scaleFactor (default: 1).
  * @param {Number} [options.boxFittingStrokeWidth] - the strokeWidth to accommodate when box fitting (default: 0).
  * @param {Function} [options.scaleFunction] - a function, given a point, that modifies the scaleFactor for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given a point, that decides whether to scale the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given a point, that decides whether to scale the point (default: undefined).
  * @param {Boolean} [options.selectedPointsOnly] - whether to scale only the selected points (default: false).
  * @param {Boolean} [options.redraw] - whether to redraw the pol (default: true).
  */
@@ -1217,7 +1217,7 @@ Pol.prototype.scale = function scale(options) {
         box = options.box,
         boxFittingStrokeWidth = options.boxFittingStrokeWidth,
         scaleFunction = options.scaleFunction,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         selectedPointsOnly = options.selectedPointsOnly === true,
         redraw = options.redraw !== false,
         isSelected = self.pageItem && self.pageItem.selected == true,
@@ -1272,8 +1272,8 @@ Pol.prototype.scale = function scale(options) {
                 skipThisPoint = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p) == false
+                filter != undefined
+                && filter(p) == false
             )
                 // segment failed the filter function
                 skipThisPoint = true;
@@ -1369,7 +1369,7 @@ Pol.prototype.scale = function scale(options) {
  * @param {Array<Number>} [options.alignToBox] - a bounding box [L, T, R, B] for size-fitting purposes (default: undefined).
  * @param {Number} [options.translationOffset] - an additional translation (default: [0, 0]).
  * @param {Function} [options.translateFunction] - a function, given a point, that modifies the scaleFactor for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given a point, that decides whether to scale the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given a point, that decides whether to scale the point (default: undefined).
  * @param {Boolean} [options.selectedPointsOnly] - whether to translate only the selected points (default: false).
  * @param {Boolean} [options.redraw] - whether to redraw the pol (default: true).
  */
@@ -1386,7 +1386,7 @@ Pol.prototype.translate = function translate(options) {
         alignToBox = options.alignToBox,
         translationOffset = options.translationOffset || [0, 0],
         translateFunction = options.translateFunction,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         selectedPointsOnly = options.selectedPointsOnly === true,
         redraw = options.redraw !== false,
         isSelected = self.pageItem && self.pageItem.selected == true,
@@ -1460,8 +1460,8 @@ Pol.prototype.translate = function translate(options) {
                 skipThisPoint = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p) == false
+                filter != undefined
+                && filter(p) == false
             )
                 // segment failed the filter function
                 skipThisPoint = true;

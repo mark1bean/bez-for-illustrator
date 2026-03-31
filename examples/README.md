@@ -49,7 +49,7 @@ bez.addExtraPointsBetweenPoints( { lengths: [ 25, 50, -25, -50 ] } );
 bez.addExtraPointsBetweenPoints(
     {
         distance: 15,
-        filterFunction: Bez.isCurvedSegment
+        filter: Bez.isCurvedSegment
     } );
 ```
 

@@ -14,13 +14,6 @@ if ('undefined' === typeof Dasher) {
  */
 (function () {
 
-    if (Bez == undefined)
-        throw Error('Cannot find the required script file "Bez.js".');
-
-    if (Dasher == undefined)
-        throw Error('Cannot find the required script file "Dasher.js".');
-
-
     // make a layer to put the new dash items
     var dashesLayer = makeLayer('dashes');
 
@@ -32,12 +25,13 @@ if ('undefined' === typeof Dasher) {
         }
     );
 
-/**
- * Converts selected path items with
- * dashed strokes into individual dashes.
- * @param {Object} options
- * @param {}
- */
+    /**
+     * Converts selected path items with
+     * dashed strokes into individual dashes.
+     * @param {Object} options
+     * @param {Layer} [options.layer] - layer to place dashes on.
+     * @param {Boolean} [options.keepOriginal] - whether to keep the original path item.
+     */
     function convertSelectedDashedStrokes(options) {
 
         var doc = app.activeDocument,
@@ -51,8 +45,6 @@ if ('undefined' === typeof Dasher) {
 
             if (item.typename == 'CompoundPathItem') {
 
-                // compound path item
-
                 var dup = item.duplicate();
                 doc.selection = null;
                 dup.selected = true;
@@ -65,11 +57,14 @@ if ('undefined' === typeof Dasher) {
                 for (var j = 0; j < doc.selection.length; j++)
                     pathItemsToRemove.push(doc.selection[j]);
 
-                // convert to dashes and remove duplicate
+                // convert to dashes and remove uncompounded pieces
                 for (var j = pathItemsToRemove.length - 1; j >= 0; j--) {
-                    convertPathItemToDashes(pathItemsToRemove[j], options)
+                    convertPathItemToDashes(pathItemsToRemove[j], options);
                     pathItemsToRemove[j].remove();
                 }
+
+                if (!options.keepOriginal)
+                    item.remove();
 
             }
 
@@ -88,19 +83,19 @@ if ('undefined' === typeof Dasher) {
     };
 
 
-
     /**
      * Convert one path item to dashes.
-     * @param {PathItem|CompoundPathItem} item - an Illustrator PathItem or CompoundPathItem.
-     * @param {Object} options - the same options as Bez.prototype.convertToDashes
+     * @param {PathItem} item - an Illustrator PathItem.
+     * @param {Object} options - the same options as Bez.convertPathItemToDashes.
      */
     function convertPathItemToDashes(item, options) {
 
-        var bez = new Bez({ pathItem: item });
-        bez.convertToDashes(options);
+        Bez.convertPathItemToDashes({
+            pathItem: item,
+            container: options.layer,
+        });
 
     };
-
 
 
     /**
@@ -122,10 +117,11 @@ if ('undefined' === typeof Dasher) {
                 newLayer = doc.layers[i];
                 break;
             }
+
         }
 
         if (newLayer == undefined) {
-            newLayer = app.activeDocument.layers.add()
+            newLayer = app.activeDocument.layers.add();
             newLayer.name = name;
         }
 

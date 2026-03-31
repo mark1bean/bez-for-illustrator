@@ -61,7 +61,7 @@ if ('undefined' === typeof Bez) {
         )
             return;
 
-        applyToAll({ distance: distance, filterFunction: Bez.isCurvedSegment });
+        applyToAll({ distance: distance, filter: Bez.isCurvedSegment });
 
     };
 
@@ -82,7 +82,7 @@ if ('undefined' === typeof Bez) {
         applyToAll(
             {
                 numberOfPoints: numberOfPoints,
-                filterFunction: Bez.isCurvedSegment,
+                filter: Bez.isCurvedSegment,
             }
         );
 
@@ -143,7 +143,7 @@ if ('undefined' === typeof Bez) {
         if (lengths.length == 0)
             return;
 
-        applyToAll({ lengths: lengths, filterFunction: onlyHorizontalOrVerticalStraightLines });
+        applyToAll({ lengths: lengths, filter: onlyHorizontalOrVerticalStraightLines });
 
     };
 
@@ -164,12 +164,12 @@ if ('undefined' === typeof Bez) {
     };
 
     /**
-     * Example custom filterFunction:
+     * Example custom filter:
      * Returns true only when the segment has control points
      * longer than `curveThreshold`.
      * Note: this function returns a function closure containing
      * the `curveThreshold` parameter. So *call* it (with curveThreshold
-     * parameter) when you are passing the filterFunction.
+     * parameter) when you are passing the filter.
      * @returns {Function}
      */
     function onlyCurvedSegmentsLargerThan(curveThreshold) {
@@ -200,7 +200,7 @@ if ('undefined' === typeof Bez) {
 
 
     /**
-     * Example custom filterFunction:
+     * Example custom filter:
      * Returns true only when the line p1p2
      * is perfectly horizontal or vertical.
      * @returns {Boolean}

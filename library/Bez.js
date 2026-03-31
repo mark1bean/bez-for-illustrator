@@ -425,7 +425,7 @@ Bez.prototype.getCentroid = function getMyCentroid(flatness, polygon) {
 
     var self = this;
 
-    return Bez.getCentroid(polygon || self.getPolygon(flatness));
+    return Bez.getCentroid(polygon || self.getPolygon({ flatness: flatness }));
 
 };
 
@@ -440,46 +440,13 @@ Bez.prototype.getCentroid = function getMyCentroid(flatness, polygon) {
  */
 Bez.prototype.containsPoint = function containsPoint(p, flatness) {
 
-    var self = this,
-        x = p[0],
-        y = p[1],
-        doesIntersect = false;
+    var self = this;
 
-    // note getPolygon() returns an array of
-    // polygons (one for each path in bez)
-    self.polygons = self.polygons || self.getPolygon(flatness || 2);
+    // note getPolygon() returns an array of polygons (one for each path in bez),
+    // which is the same structure Pol.pathContainsPoint expects
+    self.polygons = self.polygons || self.getPolygon({ flatness: flatness || 2 });
 
-    polygonsLoop:
-    for (var k = 0; k < self.polygons.length; k++) {
-
-        var polygon = self.polygons[k],
-            inside = false;
-
-        for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-
-            var xi = polygon[i][0],
-                yi = polygon[i][1],
-                xj = polygon[j][0],
-                yj = polygon[j][1],
-
-                intersect = (
-                    ((yi > y) !== (yj > y))
-                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
-                );
-
-            if (intersect)
-                inside = !inside;
-
-        }
-
-        if (inside) {
-            doesIntersect = true;
-            break polygonsLoop;
-        }
-
-    }
-
-    return inside;
+    return Pol.pathContainsPoint(self.polygons, p);
 
 };
 
@@ -651,9 +618,9 @@ Bez.pathItemsFromInterpolation = function pathItemsFromInterpolation(options) {
  *    straight-line segments.
  *  • selectedSegmentsOnly - whether to add points
  *    only to selected segments.
- *  • filterFunction - the extra points will only be
+ *  • filter - the extra points will only be
  *    added if the filter returns true for a segment.
- *    @example pass Bez.isCurvedSegment as filterFunction
+ *    @example pass Bez.isCurvedSegment as filter
  *    to add extra points only to curved segments.
  *
  * @param {Object} options
@@ -663,7 +630,7 @@ Bez.pathItemsFromInterpolation = function pathItemsFromInterpolation(options) {
  * @param {Array<Number>} [options.lengths] - array of numbers representing lengths in points at which to add points.
  * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: false).
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
- * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
+ * @param {Function} [options.filter] - a function to decide whether to add points, given a segment (default: undefined).
  * @param {Function} [options.valueFunction] - a function to modify each calculated tValue (default: undefined).
  */
 Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
@@ -716,9 +683,9 @@ Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
  *    straight-line segments.
  *  • selectedSegmentsOnly - whether to add points
  *    only to selected segments.
- *  • filterFunction - the extra points will only be
+ *  • filter - the extra points will only be
  *    added if the filter returns true for a segment.
- *    @example pass Bez.isCurvedSegment as filterFunction
+ *    @example pass Bez.isCurvedSegment as filter
  *    to add extra points only to curved segments.
  *
  * @param {Object} options
@@ -730,7 +697,7 @@ Bez.prototype.addSegmentPoints = function addSegmentPoints(options) {
  * @param {Array<Number>} [options.lengths] - array of numbers representing lengths in points at which to add points.
  * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: false).
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
- * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
+ * @param {Function} [options.filter] - a function to decide whether to add points, given a segment (default: undefined).
  */
 Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
 
@@ -743,7 +710,7 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
         numberOfPoints = options.numberOfPoints,
         values = options.values,
         lengths = options.lengths,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         selectedSegmentsOnly = options.selectedSegmentsOnly === true,
         retractControlPoints = options.retractControlPoints === true;
 
@@ -814,8 +781,8 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
                 skipThisSegment = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p1, p2) == false
+                filter != undefined
+                && filter(p1, p2) == false
             )
                 // segment failed the filter function
                 skipThisSegment = true;
@@ -883,7 +850,7 @@ Bez.addSegmentPoints = function bezAddSegmentPoints(options) {
  * @param {Array<Number>} [options.values] - array of numbers in range 0..1 (default: 1 step).
  * @param {Boolean} [options.selectedSegmentsOnly] - whether to apply to just the selected segments (default: true).
  * @param {Boolean} [options.retractControlPoints] - whether to retract all segments control points (default: false).
- * @param {Function} [options.filterFunction] - a function to decide whether to add points, given a segment (default: undefined).
+ * @param {Function} [options.filter] - a function to decide whether to add points, given a segment (default: undefined).
  */
 Bez.prototype.addExtraPointsBetweenPoints = function addExtraPointsBetweenPoints(options) {
 
@@ -901,7 +868,7 @@ Bez.prototype.addExtraPointsBetweenPoints = function addExtraPointsBetweenPoints
  * @author m1b
  * @version 2022-12-22
  * @param {Object} [options]
- * @param {Function} options.fn - a function, given data on each point, can return either a replacement BezPoint, or nothing.
+ * @param {Function} options.callback - a function, given data on each point, can return either a replacement BezPoint, or nothing.
  * @param {Number} [options.pathIndex] - an index to the bez's path array (default: undefined, meaning every path).
  * @returns {Object} - user object.
  */
@@ -910,16 +877,16 @@ Bez.prototype.eachPoint = function eachPoint(options) {
     options = options || {};
 
     var self = this,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         pathIndex = options.pathIndex,
         selectedSegmentsOnly = options.selectedSegmentsOnly !== false,
-        fn = options.fn,
+        callback = options.callback,
         start = 0,
         end = self.paths.length,
         isSelected = self.pathItems[pathIndex || 0].selected == true,
         redraw = false;
 
-    if (fn == undefined)
+    if (callback == undefined)
         throw Error('Bez.prototype.eachPoint failed: no `pointFunction` supplied.')
 
     if (
@@ -971,8 +938,8 @@ Bez.prototype.eachPoint = function eachPoint(options) {
                 skipThisSegment = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p1, p2) == false
+                filter != undefined
+                && filter(p1, p2) == false
             )
                 // segment failed the filter function
                 skipThisSegment = true;
@@ -983,7 +950,7 @@ Bez.prototype.eachPoint = function eachPoint(options) {
             // $/*debug*/.writeln(j + ': p1.angle = ' + p1.angle + '\u00B0');
 
             // execute the function
-            fn(self, p0, p1, p2, j, i, result);
+            callback(self, p0, p1, p2, j, i, result);
 
         }
 
@@ -1084,6 +1051,61 @@ Bez.prototype.makeHash = function myMakeHash(checkHash, angleTolerance, lengthRa
     self.hash = hash;
 
     return hash;
+
+};
+
+
+/**
+ * Returns true if `options.pageItem` has the same shape as this bez,
+ * within the given tolerances. Compares the hashes (angle deltas and
+ * segment-length ratios) element-by-element, trying all cyclic rotations
+ * so that a different starting vertex does not cause a false negative.
+ * @author m1b
+ * @version 2026-03-31
+ * @param {Object} options
+ * @param {PathItem} options.pageItem - the item to compare against.
+ * @param {Number} [options.angleTolerance] - max allowed difference in normalised angle delta (0..1, default: 0.1).
+ * @param {Number} [options.lengthRatioTolerance] - max allowed difference in segment length ratio (0..1, default: 0.1).
+ * @returns {Boolean}
+ */
+Bez.prototype.doesMatchItem = function doesMatchItem(options) {
+
+    options = options || {};
+
+    var self = this,
+        angleTolerance = options.angleTolerance || 0.1,
+        lengthRatioTolerance = options.lengthRatioTolerance || 0.1,
+        bez2 = new Bez({ pageItem: options.pageItem }),
+        hash1 = self.hash || self.makeHash(),
+        hash2 = bez2.makeHash(),
+        len = hash1.length;
+
+    if (len !== hash2.length)
+        return false;
+
+    // try all cyclic rotations (2 elements = one segment)
+    for (var offset = 0; offset < len; offset += 2) {
+
+        var match = true;
+
+        for (var i = 0; i < len; i++) {
+
+            var j = (i + offset) % len;
+            var tolerance = (i % 2 === 0) ? angleTolerance : lengthRatioTolerance;
+
+            if (Math.abs(hash1[i] - hash2[j]) > tolerance) {
+                match = false;
+                break;
+            }
+
+        }
+
+        if (match)
+            return true;
+
+    }
+
+    return false;
 
 };
 
@@ -1205,52 +1227,87 @@ Bez.findRotationByMinimalBounds = function findRotationByMinimalBounds(item) {
 
 
 /**
- * Draws visual indicators showing path direction.
+ * Draws an arrow at each anchor point, oriented to the path direction.
+ * First point arrow is pink; subsequent arrows are cyan.
+ * All arrows are grouped under a single new GroupItem.
  * @author m1b
- * @version 2022-12-22
+ * @version 2026-03-31
  * @param {Object} [options]
- * @param {Number} [options.pathIndex] - the index to the path (default: all paths).
+ * @param {Number} [options.size] - scale factor for the arrows (default: 10).
  */
-Bez.prototype.drawPathIndicators = function (options) {
+Bez.prototype.drawPathIndicators = function drawPathIndicators(options) {
 
     options = options || {};
 
-    var self = this,
-        size = options.size || 2,
+    var self = this;
+    var doc = self.doc || app.activeDocument;
+    var size = options.size || 10;
+    var group = doc.groupItems.add();
+    var pink = _getPink();
+    var cyan = _getCyan();
 
-        pink = getPink(),
-        cyan = getCyan(),
+    self.eachPoint({ callback: _drawArrow });
 
-        firstPointAppearance = {
+    /**
+     * Draws an arrow at point p1, angled in the direction of travel.
+     * @param {Bez} bez - the bez instance.
+     * @param {BezPoint} p0 - the point before p1.
+     * @param {BezPoint} p1 - the current point.
+     * @param {BezPoint} p2 - the point after p1.
+     * @param {Number} pointIndex - index of p1 within its path.
+     */
+    function _drawArrow(_bez, p0, p1, p2, pointIndex) {
+
+        var angle = Bez.getAngleOfPointP1(p1, p2);
+
+        if (
+            angle == undefined
+            && p0 != undefined
+        )
+            // last point: flip the reverse angle of p0→p1
+            angle = Bez.getAngleOfPointP1(p0, p1, false, true) + 180;
+
+        var arrow = _makeArrow(p1, {
             filled: false,
             stroked: true,
             strokeWidth: 0.5,
-            strokeColor: pink,
             strokeDashes: [],
-        },
+        });
 
-        secondPointAppearance = {
-            filled: false,
-            stroked: true,
-            strokeWidth: 0.5,
-            strokeColor: cyan,
-            strokeDashes: [],
-        };
+        arrow.appearance.strokeColor = pointIndex === 0 ? pink : cyan;
 
-    for (var i = 0; i < self.paths.length; i++) {
+        arrow.rotate({ angle: angle, redraw: false });
+        arrow.scale({ scaleFactor: size, redraw: false });
+        arrow.draw({ container: group });
 
-        var p1 = self.point(i, 0),
-            p2 = self.point(i, 1);
+    };
 
-        // draw a circle at the first point
-        Bez.drawCircle(self.doc, p1.anchor, size, firstPointAppearance);
+    /**
+     * Returns a Bez shaped as an arrow pointing at angle 0°, centred on p1.
+     * @param {BezPoint} p1 - the anchor point to draw the arrow at.
+     * @param {Object} appearance - appearance properties for the bez.
+     * @returns {Bez}
+     */
+    function _makeArrow(p1, appearance) {
 
-        // draw a square at the second point
-        Bez.drawSquare(self.doc, p2.anchor, size * 2, secondPointAppearance);
+        var x = p1.anchor[0],
+            y = p1.anchor[1],
+            points = [
+                [-1 + x, 1 + y],
+                [x, y],
+                [-1 + x, -1 + y],
+            ];
 
-    }
+        return new Bez({
+            paths: [points],
+            pathsClosed: [false],
+            transformPoint: points[1],
+            appearance: appearance,
+        });
 
-    function getPink() {
+    };
+
+    function _getPink() {
         var c = new CMYKColor();
         c.cyan = 0;
         c.magenta = 100;
@@ -1259,7 +1316,7 @@ Bez.prototype.drawPathIndicators = function (options) {
         return c;
     };
 
-    function getCyan() {
+    function _getCyan() {
         var c = new CMYKColor();
         c.cyan = 100;
         c.magenta = 0;
@@ -1345,7 +1402,7 @@ Bez.prototype.findVisualCenter = function findVisualCenter(options) {
     options = options || {};
 
     var self = this,
-        polygon = self.getPolygon(options.flatness);
+        polygon = self.getPolygon({ flatness: options.flatness });
 
     return polylabel(polygon, options.precision || 1, false);
 
@@ -1392,7 +1449,7 @@ Bez.prototype.getPolygon = function getPolygon(options) {
         // convert to polygon (flatness is average distance between path points)
         paths = Bez.addSegmentPoints({
             distance: flatness || 1,
-            filterFunction: Bez.isCurvedSegment,
+            filter: Bez.isCurvedSegment,
             retractControlPoints: true,
             paths: paths,
             pathsClosed: self.pathsClosed.slice(),
@@ -1822,7 +1879,9 @@ Bez.prototype.draw = function draw(options) {
 
     var self = this;
 
-    self.updatePageItem();
+    self.updatePageItem(options.container);
+
+    applyProperties(self.pageItem, self.doc || app.activeDocument, self.appearance);
 
     if (options.select === true)
         self.select();
@@ -1982,16 +2041,13 @@ Bez.draw = function bezDraw(options) {
  * @author m1b
  * @version 2023-11-29
  */
-Bez.prototype.updatePageItem = function updatePageItem() {
+Bez.prototype.updatePageItem = function updatePageItem(container) {
 
     var self = this,
-        doc = self.doc,
+        doc = self.doc || app.activeDocument,
         pageItem = self.pageItem,
         paths = self.paths,
         pathsClosed = self.pathsClosed;
-
-    if (doc == undefined)
-        throw Error('Bez.draw failed: no `doc` parameter.');
 
     if (paths == undefined)
         throw Error('Bez.prototype.draw failed: no `paths` parameter.');
@@ -2026,10 +2082,13 @@ Bez.prototype.updatePageItem = function updatePageItem() {
 
     if (pageItem == undefined) {
 
-        // create the appropriate page item
+        // create the appropriate page item in the given container
+        var addTo = container || doc.activeLayer;
         pageItem = paths.length === 1
-            ? doc.activeLayer.pathItems.add()
-            : doc.activeLayer.compoundPathItems.add();
+            ? addTo.pathItems.add()
+            : addTo.compoundPathItems.add();
+
+        self.pageItem = pageItem;
 
     }
 
@@ -2312,7 +2371,7 @@ Bez.getCoordinatesOfTransformPosition = function bezGetCoordinatesOfTransformPos
  * @param {Number} [options.angleOffset] - an additional rotation (default: 0).
  * @param {Array<Number>} [options.transformPoint] - the point to transform from (default: bez's transformPoint or undefined).
  * @param {Function} [options.angleFunction] - a function, given the point, that modifies the angle for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given the point, that decides whether to rotate the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given the point, that decides whether to rotate the point (default: undefined).
  * @param {Boolean} [option.selectedPointsOnly] - whether to rotate only the selected points (default: false).
  * @param {Boolean} [options.redraw] - whether to redraw the bez (default: true).
  * @param {Boolean} [options.updateAbsoluteRotation] - whether to update the bez's absoluteRotation value (default: true when all points are rotated).
@@ -2329,7 +2388,7 @@ Bez.prototype.rotate = function rotate(options) {
         angleOffset = Number(options.angleOffset || 0),
         transformPoint = options.transformPoint,
         angleFunction = options.angleFunction,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         selectedPointsOnly = options.selectedPointsOnly === true,
         redraw = options.redraw !== false,
         isSelected = self.pageItem && self.pageItem.selected == true,
@@ -2382,8 +2441,8 @@ Bez.prototype.rotate = function rotate(options) {
                 skipThisPoint = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p) == false
+                filter != undefined
+                && filter(p) == false
             )
                 // segment failed the filter function
                 skipThisPoint = true;
@@ -2444,7 +2503,7 @@ Bez.prototype.rotate = function rotate(options) {
  * @param {Number} [angleOffset] - an additional rotation (default: 0).
  * @param {Array<Number>} [transformPoint] - (default: bez.transformPoint)
  * @param {Function} [options.angleFunction] - a function, given the point, that modifies the angle for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given the point, that decides whether to rotate the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given the point, that decides whether to rotate the point (default: undefined).
  * @param {Boolean} [options.redraw] - whether to redraw the bez (default: true).
 */
 Bez.prototype.setAngle = function setAngle(options) {
@@ -2514,7 +2573,7 @@ Bez.prototype.getRotationDatum = function getRotationDatum(reverse, pathIndex) {
  * @param {Number} [options.scaleFactorOffset] - an additional scaleFactor (default: 1).
  * @param {Number} [options.boxFittingStrokeWidth] - the strokeWidth to accommodate when box fitting (default: 0).
  * @param {Function} [options.scaleFunction] - a function, given a point, that modifies the scaleFactor for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given a point, that decides whether to scale the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given a point, that decides whether to scale the point (default: undefined).
  * @param {Boolean} [options.selectedPointsOnly] - whether to scale only the selected points (default: false).
  * @param {Boolean} [options.redraw] - whether to redraw the bez (default: true).
  */
@@ -2532,7 +2591,7 @@ Bez.prototype.scale = function scale(options) {
         box = options.box,
         boxFittingStrokeWidth = options.boxFittingStrokeWidth,
         scaleFunction = options.scaleFunction,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         selectedPointsOnly = options.selectedPointsOnly === true,
         redraw = options.redraw !== false,
         isSelected = self.pageItem && self.pageItem.selected == true,
@@ -2587,8 +2646,8 @@ Bez.prototype.scale = function scale(options) {
                 skipThisPoint = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p) == false
+                filter != undefined
+                && filter(p) == false
             )
                 // segment failed the filter function
                 skipThisPoint = true;
@@ -2685,7 +2744,7 @@ Bez.prototype.scale = function scale(options) {
  * @param {Array<Number>} [options.alignToBox] - a bounding box [L, T, R, B] for size-fitting purposes (default: undefined).
  * @param {Number} [options.translationOffset] - an additional translation (default: [0, 0]).
  * @param {Function} [options.translateFunction] - a function, given a point, that modifies the scaleFactor for each point (default: undefined).
- * @param {Function} [options.filterFunction] - a function, given a point, that decides whether to scale the point (default: undefined).
+ * @param {Function} [options.filter] - a function, given a point, that decides whether to scale the point (default: undefined).
  * @param {Boolean} [options.selectedPointsOnly] - whether to translate only the selected points (default: false).
  * @param {Boolean} [options.redraw] - whether to redraw the bez (default: true).
  */
@@ -2702,7 +2761,7 @@ Bez.prototype.translate = function translate(options) {
         alignToBox = options.alignToBox,
         translationOffset = options.translationOffset || [0, 0],
         translateFunction = options.translateFunction,
-        filterFunction = options.filterFunction,
+        filter = options.filter,
         selectedPointsOnly = options.selectedPointsOnly === true,
         redraw = options.redraw !== false,
         isSelected = self.pageItem && self.pageItem.selected == true,
@@ -2776,8 +2835,8 @@ Bez.prototype.translate = function translate(options) {
                 skipThisPoint = true;
 
             if (
-                filterFunction != undefined
-                && filterFunction(p) == false
+                filter != undefined
+                && filter(p) == false
             )
                 // segment failed the filter function
                 skipThisPoint = true;
@@ -3487,7 +3546,7 @@ Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathO
 
 /**
  * Converts item to individual dashes.
- * Notes: the `filterFunction` is a function
+ * Notes: the `filter` is a function
  * that takes the index of the current outputted
  * dash path item and returns true to draw it,
  * or false to not draw it. So
@@ -3498,7 +3557,7 @@ Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathO
  * @param {Document} [options.doc] - an Illustrator Document.
  * @param {Array<Number>} [options.pattern] - array of dash|gap lengths (default: item.strokeDashes).
  * @param {Number} [options.pathIndex] - the index to the path to convert (default: 0).
- * @param {Function} [options.filterFunction] - a function to determine whether to keep or remove an individual dash path. (default: removeGaps).
+ * @param {Function} [options.filter] - a function to determine whether to keep or remove an individual dash path. (default: removeGaps).
  * @param {Boolean} [options.alignDashes] - if true, align dashes to corners (default: item's setting).
  * @param {Document|GroupItem|Layer} [options.container] - Layer to place dashes (default: the pathItem's document).
  * @return {Boolean} - success; if false, means item wasn't converted.
@@ -3953,21 +4012,21 @@ Bez.expandCutLengths = function bezExpandCutLengths(points, closed, ignoreLastLe
 /**
  * Cuts a single path array of BezPoints into multiple
  * path arrays, by dividing at each "break" point.
- * `filterFunction` is an optional parameter which, given
+ * `filter` is an optional parameter which, given
  * index and point, will return false when path should
  * be removed (eg. to remove gaps in dashes patterns)
  * @author m1b
  * @version 2023-03-26
  * @param {Array<BezPoint>} points - the points to cut.
- * @param {Function} [filterFunction] - a function to exclude paths.
+ * @param {Function} [filter] - a function to exclude paths.
  * @returns {Object} {paths: [], pathsClosed: []}
  */
-Bez.cutIntoPaths = function bezCutIntoPaths(points, filterFunction) {
+Bez.cutIntoPaths = function bezCutIntoPaths(points, filter) {
 
-    // filterFunction = filterFunction || function () { return true };
+    // filter = filter || function () { return true };
 
-    // if (filterFunction.constructor.name !== 'Function')
-    // throw Error('Bez.cutIntoPaths failed: bad `filterFunction` parameter.');
+    // if (filter.constructor.name !== 'Function')
+    // throw Error('Bez.cutIntoPaths failed: bad `filter` parameter.');
 
     var paths = [[]],
         pathsClosed = [false],
@@ -3991,8 +4050,8 @@ Bez.cutIntoPaths = function bezCutIntoPaths(points, filterFunction) {
             // end of a path
 
             if (
-                filterFunction != undefined
-                && filterFunction(i, currentPoint) == false
+                filter != undefined
+                && filter(i, currentPoint) == false
             ) {
                 // remove this path, eg. an unwanted gap
                 paths.pop();
