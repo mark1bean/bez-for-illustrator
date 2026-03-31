@@ -1,5 +1,9 @@
-//@include '../library/Bez.js'
-//@include '../library/Dasher.js'
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
+if ('undefined' === typeof Dasher) {
+    //@include '../library/Dasher.js'
+}
 
 /**
  * Convert Selected Paths to Dashes

@@ -1,4 +1,6 @@
-//@include '../library/Bez.js'
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
 
 /**
  * Make a bez example.

@@ -1,10 +1,8 @@
-//@include '../library/Bez.js'
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
 
 (function () {
-
-    if (Bez == undefined)
-        throw 'Must have Bez.js in same folder as this script.';
-
 
     var doc = app.activeDocument,
         item = doc.selection[0],

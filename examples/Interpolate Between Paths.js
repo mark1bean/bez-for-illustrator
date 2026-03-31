@@ -5,7 +5,9 @@
  * @version 2022-12-23
  * @requires Bez.js
 */
-//@include '/Users/mark/Scripting/Illustrator/Projects/Bez/public/bez-for-illustrator/library/Bez.js'
+if ('undefined' === typeof Bez) {
+    //@include '/Users/mark/Scripting/Illustrator/Projects/Bez/public/bez-for-illustrator/library/Bez.js'
+}
 (function () {
 
     if (typeof Bez === 'undefined')

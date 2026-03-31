@@ -1,4 +1,6 @@
-//@include '../library/Bez.js'
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
 
 /**
  * Add path points to selected path items.
@@ -9,73 +11,118 @@
 (function () {
 
     var AddPointsTo = {
-        ENTIRE_PATH: 0,
-        EACH_SEGMENT: 1,
+        ENTIRE_PATH: 'Entire Path',
+        EACH_SEGMENT: 'Each Segment',
     };
 
-    var AddPointsBy = {
-        POINT_COUNT: 0,
-        PERCENTAGES: 2,
-        APPROXIMATE_DISTANCE: 1,
-        INTERVALS: 3,
-        POSITIONS: 4
+    var AddPointsAt = {
+        POINT_COUNT: { type: 'Point count', description: 'Add N points' },
+        PERCENTAGES: { type: 'Percentages', description: 'Add points at specified percentages' },
+        POSITIONS: { type: 'Positions', description: 'Add points at specified distances' },
+        INTERVALS: { type: 'Pattern', description: 'Add points at specified intervals' },
+        APPROXIMATE_DISTANCE: { type: 'Spaced', description: 'Add a point approximately every N apart' },
     };
 
     var settings = {
-        what: AddPointsTo.ENTIRE_PATH,
-        how: AddPointsBy.POINT_COUNT,
+        target: AddPointsTo.ENTIRE_PATH,
+        operation: AddPointsAt.PROP,
         value: '2',
         unit: 'mm', // 'cm' // 'in' // 'pt'
+        showUI: false,
     };
 
-    var result = showUI(settings);
+    var testCases = [
+        {
+            target: AddPointsTo.ENTIRE_PATH,
+            operation: AddPointsAt.POINT_COUNT,
+            value: '2',
+            unit: 'mm', // 'cm' // 'in' // 'pt'
+            showUI: false,
+        },
+        {
+            target: AddPointsTo.ENTIRE_PATH,
+            operation: AddPointsAt.PERCENTAGES,
+            value: '20,50,60',
+            showUI: false,
+        },
+        {
+            target: AddPointsTo.ENTIRE_PATH,
+            operation: AddPointsAt.POSITIONS,
+            value: '2,3,5,6',
+            unit: 'mm', // 'cm' // 'in' // 'pt'
+            showUI: false,
+        },
+        {
+            target: AddPointsTo.ENTIRE_PATH,
+            operation: AddPointsAt.INTERVALS,
+            value: '10,2,10,5',
+            unit: 'pt', // mm cm in pt
+            showUI: false,
+        },
+        {
+            target: AddPointsTo.ENTIRE_PATH,
+            operation: AddPointsAt.APPROXIMATE_DISTANCE,
+            value: '20',
+            unit: 'pt', // mm cm in pt
+            showUI: false,
+        }
+    ];
 
-    if (result == 2)
-        // user cancelled
-        return;
+    settings = testCases[4];
+
+    if (settings.showUI) {
+
+        var result = showUI(settings);
+
+        if (result == 2)
+            // user cancelled
+            return;
+
+    }
+
+    // compute unitScale when not using UI
+    if (settings.unitScale == undefined)
+        settings.unitScale = { pt: 1, mm: 2.834645, cm: 28.34645, 'in': 72 }[settings.unit] || 1;
 
     // convert values into array of numbers
     var values = parseValues(settings.value, settings.unitScale);
 
-    var divideEachSegment = settings.what === AddPointsTo.EACH_SEGMENT;
+    var divideEachSegment = settings.target === AddPointsTo.EACH_SEGMENT;
 
-    if (typeof Bez === 'undefined')
-        throw Error('Cannot find the required library file "Bez.js".');
-
-    // make a Bez of each selected path item
-    var doc = app.activeDocument,
-        items = extractPathItems(doc.selection),
-        allPathItems = [];
+    var doc = app.activeDocument;
+    var bezs = Bez.fromItems(doc.selection);
+    var allPathItems = [];
 
     itemsLoop:
-    for (var i = items.length - 1; i >= 0; i--) {
+    for (var i = bezs.length - 1; i >= 0; i--) {
 
-        var bez = new Bez({ pageItem: items[i] });
+        var bez = bezs[i];
 
-        switch (settings.how) {
+        switch (settings.operation) {
 
-            case AddPointsBy.POINT_COUNT:
-        bez.addExtraPointsBetweenPoints({ numberOfPoints: values[0] });
-                break;
-
-            case AddPointsBy.PERCENTAGES:
-                for (var v = 0; v < values.length; v++)
-                    // convert from percentage to unit value
-                    values[v] /= 100;
+            case AddPointsAt.POINT_COUNT:
                 bez.addExtraPointsBetweenPoints({ numberOfPoints: values[0] });
                 break;
 
-            case AddPointsBy.APPROXIMATE_DISTANCE:
+            case AddPointsAt.PERCENTAGES:
+                for (var v = 0; v < values.length; v++)
+                    // convert from percentage to 0..1 range
+                    values[v] /= 100;
+                bez.addExtraPointsBetweenPoints({ values: values });
+                break;
+
+            case AddPointsAt.APPROXIMATE_DISTANCE:
                 bez.addExtraPointsBetweenPoints({ distance: values[0] });
                 break;
 
-            case AddPointsBy.INTERVALS:
-                bez.addExtraPointsBetweenPoints({ lengths: values });
+            case AddPointsAt.INTERVALS:
+                // convert intervals to cumulative positions (absolute from segment start)
+                bez.addExtraPointsBetweenPoints({ lengths: convertIntervalsToCumulativePositions(values) });
                 break;
 
-            case AddPointsBy.POSITIONS:
-                var intervals = convertPositionsToIntervals(values);
-                bez.addExtraPointsBetweenPoints({ lengths: intervals });
+            case AddPointsAt.POSITIONS:
+                // lengths expects absolute positions from segment start
+                bez.addExtraPointsBetweenPoints({ lengths: values });
                 break;
 
             default:
@@ -113,30 +160,23 @@
     };
 
     /**
-     * Converts positions to intervals
-     * (ie. the distance between positions).
-     * For example positions [10,15,30]
-     * would convert to [10,5,15].
-     * @param {Array<Number>} positions - the positions.
-     * @returns {Array<Number>} - the intervals.
+     * Converts intervals to cumulative positions from start.
+     * For example intervals [10,5,15]
+     * would convert to [10,15,30].
+     * @param {Array<Number>} intervals - the intervals between points.
+     * @returns {Array<Number>} - cumulative positions from segment start.
      */
-    function convertPositionsToIntervals(positions) {
+    function convertIntervalsToCumulativePositions(intervals) {
 
-        positions = positions.slice();
-
-        var intervals = [],
+        var positions = [],
             pos = 0;
 
-        // positions must be in order
-        positions.sort(function (a, b) { return a - b });
-
-        // calculate the intervals between positions
-        while (positions.length > 0) {
-            intervals.push(-(pos - positions[0]));
-            pos = positions.shift();
+        for (var i = 0; i < intervals.length; i++) {
+            pos += intervals[i];
+            positions.push(pos);
         }
 
-        return intervals;
+        return positions;
 
     };
 

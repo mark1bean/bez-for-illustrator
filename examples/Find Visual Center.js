@@ -1,5 +1,9 @@
-//@include '../library/Bez.js'
-//@include '../library/PolyLabel.js'
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
+if ('undefined' === typeof polylabel) {
+    //@include '../library/PolyLabel.js'
+}
 
 
 /**

@@ -1,4 +1,6 @@
-//@include '../library/Bez.js'
+if ('undefined' === typeof Bez) {
+    //@include '../library/Bez.js'
+}
 
 /**
  * Convert Selected Paths to Polygons
@@ -8,25 +10,43 @@
  */
 (function () {
 
-    if (Bez == undefined)
-        throw Error('Cannot find the required script file "Bez.js".');
+    var doc = app.activeDocument;
+    var bezs = Bez.fromItems(doc.selection);
 
-    var doc = app.activeDocument,
-        item = doc.selection[0];
-
-    if (item == undefined) {
+    if (bezs.length == 0) {
         alert('Please select a path item and try again.');
         return;
     }
 
-    var bez = new Bez({ pageItem: item });
+    var exampleIndex = prompt('Choose an example from 1 to 5', 1);
+    if (
+        exampleIndex
+        && !isNaN(Number(exampleIndex))
+    ) {
+        // run an example function
+        var example = [
+            example1, // Ask user to choose distance between added path points.
+            example2, // Ask user to choose how many path points to add to each segment, apply to curved segments only.
+            example3, // Ask user to choose values of path points to add to each segment.
+            example4, // Ask user to choose lengths of path points to add to each segment, but only on horizontal or vertical straight lines.
+            example5, // Add points at set distance, but with easing valueFunction.
+        ][Number(exampleIndex) - 1];
 
-    example1(); // Ask user to choose distance between added path points.
-    // example2(); // Ask user to choose how many path points to add to each segment, apply to curved segments only.
-    // example3(); // Ask user to choose values of path points to add to each segment.
-    // example4(); // Ask user to choose lengths of path points to add to each segment.
-    // example5(); // Add points at set distance, but with easing valueFunction.
+        if ('function' === typeof example)
+            example();
 
+    }
+
+    /**
+     * Applies convertToPolygon options to all selected items.
+     * @param {Object} options - options passed to bez.convertToPolygon.
+     */
+    function applyToAll(options) {
+
+        for (var i = 0; i < bezs.length; i++)
+            bezs[i].convertToPolygon(options);
+
+    };
 
     /**
      * Example 1:
@@ -41,7 +61,7 @@
         )
             return;
 
-        bez.convertToPolygon({ distance: distance, filterFunction: Bez.isCurvedSegment });
+        applyToAll({ distance: distance, filterFunction: Bez.isCurvedSegment });
 
     };
 
@@ -59,7 +79,7 @@
         )
             return;
 
-        bez.convertToPolygon(
+        applyToAll(
             {
                 numberOfPoints: numberOfPoints,
                 filterFunction: Bez.isCurvedSegment,
@@ -96,7 +116,7 @@
         if (values.length == 0)
             return;
 
-        bez.convertToPolygon({ values: values });
+        applyToAll({ values: values });
 
     };
 
@@ -104,6 +124,7 @@
     /**
      * Example 4:
      * Ask user to choose lengths of path points to add to each segment.
+     * Filter so only apply to segments which are vertical or horizontal straight lines.
      */
     function example4() {
 
@@ -122,7 +143,7 @@
         if (lengths.length == 0)
             return;
 
-        bez.convertToPolygon({ lengths: lengths });
+        applyToAll({ lengths: lengths, filterFunction: onlyHorizontalOrVerticalStraightLines });
 
     };
 
@@ -133,7 +154,7 @@
      */
     function example5() {
 
-        bez.convertToPolygon(
+        applyToAll(
             {
                 distance: 25,
                 valueFunction: easeInOutQuad,
@@ -142,8 +163,6 @@
 
     };
 
-
-
     /**
      * Example custom filterFunction:
      * Returns true only when the segment has control points
@@ -151,21 +170,31 @@
      * Note: this function returns a function closure containing
      * the `curveThreshold` parameter. So *call* it (with curveThreshold
      * parameter) when you are passing the filterFunction.
-     * @returns {Boolean}
+     * @returns {Function}
      */
     function onlyCurvedSegmentsLargerThan(curveThreshold) {
 
-        return function (p1, p2, segmentLength, distance, numberOfPoints, bounds) {
+        // returns a function with curveThreshold set
+        return (
+            /**
+             *
+             * @param {PathPoint} p1 - first path point.
+             * @param {PathPoint} p2 - second path point.
+             * @returns {Boolean}
+             */
+            function (p1, p2,) {
 
-            var d1 = distanceBetweenPoints(p1.rightDirection, p1.anchor),
-                d2 = distanceBetweenPoints(p2.leftDirection, p2.anchor);
+                var d1 = distanceBetweenPoints(p1.rightDirection, p1.anchor),
+                    d2 = distanceBetweenPoints(p2.leftDirection, p2.anchor);
 
-            return (
-                Math.abs(d1) > curveThreshold
-                || Math.abs(d2) > curveThreshold
-            );
+                return (
+                    Math.abs(d1) > curveThreshold
+                    || Math.abs(d2) > curveThreshold
+                );
 
-        };
+            }
+
+        );
 
     };
 
@@ -176,7 +205,7 @@
      * is perfectly horizontal or vertical.
      * @returns {Boolean}
      */
-    function onlyHorizontalOrVerticalStraightLines(p1, p2, segmentLength, distance, numberOfPoints, bounds) {
+    function onlyHorizontalOrVerticalStraightLines(p1, p2) {
 
         var angle = round(getAngleABC([p1.anchor[0] + 1, p1.anchor[1]], p1.anchor, p2.anchor), 2);
 
