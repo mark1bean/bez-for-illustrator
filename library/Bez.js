@@ -1,3 +1,34 @@
+/**
+ * @file Bez.js
+ *
+ * Bez is a path manipulation tool.
+ *
+ * TIP: See the example scripts for some of the things you can do
+ * with a Bez.
+ *
+ * Usage:
+ *    1.  `new Bez({item: myPathItem, ... })` wraps a PathItem and
+ *        gives it new powers of path editing.
+ *    2.  `myBez.draw(options)` to draw the bez to the document.
+ *
+ * Some terminology:
+ *
+ *    Bez -      a Bez instance can hold a reference to pathItem
+ *               (and internal pathItems if compoundPathItem) and provides
+ *               convenient access to the various Bez functionality.
+ *
+ *    BezPoint - a separate constructor, a wrapper for Illustrator's PathPoint.
+ *
+ *    section -  part of a path, divided according to purpose,
+ *               eg. for aligning dashes to corners.
+ *
+ *    segment -  path segment defined by two points.
+ *
+ *    point -    Any type of point, based on context: a BezPoint, a PathPoint or a simple [x,y] array.
+ *
+ *    advance -  a moving marker of position on path.
+ *
+ */
 if ('undefined' === typeof _bezUtilsIncluded)
     $.evalFile(File($.fileName).parent + '/BezUtils.js');
 
