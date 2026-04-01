@@ -39,8 +39,6 @@ function Dasher(pattern) {
 
 };
 
-
-
 /**
  * Returns array of basic (non-aligned)
  * dash|gap lengths. The last dash or gap
@@ -91,9 +89,6 @@ Dasher.prototype.basicPatternForLength = function (len, omitFinalLength) {
 
 };
 
-
-
-
 /**
  * Returns array of dash|gap lengths.
  * Attempts to match Illustrator's own
@@ -117,15 +112,19 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash, om
     var pattern = this.pattern;
     var patternSum = this.sum;
     var patternLength = pattern.length;
+
     // length of first dash
     var firstLength = dontSplitFirstDash === true ? 0 : pattern[0];
+
     // start and end are half the first dash
     // unless dontSplitStartDash is true
     var start = firstLength / 2;
     var end = start;
     var result = [];
+
     // the space between the start and end lengths
     var middleMaxWidth = len - start - end;
+
     // calculate the number of repetitions
     var r = len / patternSum;
     var rf = Math.floor(r);
@@ -191,8 +190,6 @@ Dasher.prototype.alignedPatternForLength = function (len, dontSplitFirstDash, om
 
 };
 
-
-
 /**
  * Scale and repeat all values in the pattern.
  * @param {Array} pattern - array of dash-gap pattern.
@@ -221,9 +218,6 @@ Dasher.getScaledRepetitions = function (pattern, scaleFactor, reps, dontSplitFir
     return repeatScaledValues;
 
 };
-
-
-
 
 /**
  * Returns representation of the Dasher instance.

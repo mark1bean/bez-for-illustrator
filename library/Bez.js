@@ -3553,17 +3553,46 @@ Bez.prototype.calculateLengthsAndPathOffsets = function calculateLengthsAndPathO
 
 
 /**
- * Converts item to individual dashes.
- * Notes: the `filter` is a function
- * that takes the index of the current outputted
- * dash path item and returns true to draw it,
- * or false to not draw it. So
+ * Splits a dashed-stroked path item into separate dashes.
+ *
+ * Tip: The path item doesn't need to have dashed stroke applied
+ * if you specify the dash configuration you want via parameters.
+ *
+ * Options:
+ *
+ * | option            | description                                                                        | default                                                              |
+ * | ----------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+ * | pattern           | {Array} of [dash, gap] lengths                                                     | item's `strokeDashes` property                                       |
+ * | alignDashes       | {Boolean} (if true, align dashes to corners and path ends, scaling lengths to fit) | item's stroke dash alignment style                                   |
+ * | layer             | {Layer} to place converted dashes                                                  | Place group next to item on same layer                               |
+ * | strokeCap         | {StrokeCap} type of line capping                                                   | item's `strokeCap` property or `StrokeCap.BUTTENDCAP`                |
+ * | strokeColor       | {Swatch} or `Color` to color dashes                                                | item's `strokeColor` property (if no color, dashes won't be stroked) |
+ * | strokeJoin        | {StrokeJoin} type of joints                                                        | item's `StrokeJoin` property or `StrokeJoin.MITERENDJOIN`            |
+ * | strokeMiterLimit  | {Number} mitre limit                                                               | 4                                                                    |
+ * | strokeWidth       | {Number} width of stroke in pts                                                    | 1                                                                    |
+ * | filter            | {Number} width of stroke in pts                                                    | 1                                                                    |
+ *
+ * Example:
+ *
+ *      var options = {
+ *          pattern: [8,2,4,2],
+ *          alignDashes: true,
+ *          strokeColor: app.activeDocument.swatches[5]
+ *      };
+ *
+ *      var item = app.activeDocument.selection[0];
+ *      var bez = new Bez({ pathItem: item });
+ *      bez.convertToDashes(options);
+ *
+ * Notes: the `filter` is a function that takes the index of the current outputted dash path item
+ * and returns true to draw it, or false to not draw it.
+ *
  * @author m1b
  * @version 2023-03-31
  * @param {Object} options
  * @param {PathItem} options.pathItem - an Illustrator PathItem.
  * @param {Document} [options.doc] - an Illustrator Document.
- * @param {Array<Number>} [options.pattern] - array of dash|gap lengths (default: item.strokeDashes).
+ * @param {Array<Number>} [options.pattern] - array of dash|gap lengths (default: item.strokeDashes value).
  * @param {Number} [options.pathIndex] - the index to the path to convert (default: 0).
  * @param {Function} [options.filter] - a function to determine whether to keep or remove an individual dash path. (default: removeGaps).
  * @param {Boolean} [options.alignDashes] - if true, align dashes to corners (default: item's setting).
