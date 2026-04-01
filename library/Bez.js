@@ -1378,7 +1378,7 @@ Bez.prototype.convertToPolygon = function convertToPolygon(options) {
  * @requires Bez.js
  * @requires PolyLabel.js by Volodymyr Agafonkin.
  *     Original JS version: https://github.com/mapbox/polylabel
- *     ExtendScript version: https://github.com/mark1bean/bez-for-illustrator/lib/PolyLabel.js
+ *     ExtendScript version: https://github.com/mark1bean/bez-for-illustrator/library/PolyLabel.js
  *
  * @param {Object} options
  * @param {Number} [options.flatness] - the average length, in points, of flats on curved segments (default: 5).
@@ -1387,7 +1387,7 @@ Bez.prototype.convertToPolygon = function convertToPolygon(options) {
  */
 Bez.prototype.findVisualCenter = function findVisualCenter(options) {
 
-    if (polylabel == undefined)
+    if (PolyLabel == undefined)
         throw Error('findVisualCenter not available: Please include the required script file "PolyLabel.js" at the start of your code.');
 
     options = options || {};
@@ -1395,7 +1395,7 @@ Bez.prototype.findVisualCenter = function findVisualCenter(options) {
     var self = this;
     var polygon = self.getPolygon({ flatness: options.flatness });
 
-    return polylabel(polygon, options.precision || 1, false);
+    return PolyLabel(polygon, options.precision || 1, false);
 
 };
 

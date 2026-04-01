@@ -1,4 +1,6 @@
-//@include 'TinyQueue.js'
+if ('undefined' === typeof TinyQueue) {
+    //@include 'TinyQueue.js'
+}
 
 /**
  * cff-version: 1.2.0
@@ -22,8 +24,7 @@
 
 // 'use strict';
 
-
-function polylabel(polygon, precision, debug) {
+function PolyLabel(polygon, precision, debug) {
 
     precision = precision || 1.0;
 
@@ -53,7 +54,7 @@ function polylabel(polygon, precision, debug) {
             return;
         else
             // ditch the null cell and try again
-            return polylabel(polygon.slice(1), precision, debug);
+            return PolyLabel(polygon.slice(1), precision, debug);
 
     // a priority queue of cells in order of their "potential" (max distance to polygon)
     var cellQueue = new TinyQueue(undefined, compareMax);
@@ -61,13 +62,13 @@ function polylabel(polygon, precision, debug) {
     // cover polygon with initial cells
     for (var x = minX; x < maxX; x += cellSize)
         for (var y = minY; y < maxY; y += cellSize)
-            cellQueue.push(new Cell(x + h, y + h, h, polygon));
+            cellQueue.push(new PolyLabelCell(x + h, y + h, h, polygon));
 
     // take centroid as the first best guess
     var bestCell = getCentroidCell(polygon);
 
     // second guess: bounding box centroid
-    var bboxCell = new Cell(minX + width / 2, minY + height / 2, 0, polygon);
+    var bboxCell = new PolyLabelCell(minX + width / 2, minY + height / 2, 0, polygon);
     if (bboxCell.d > bestCell.d) bestCell = bboxCell;
 
     var numProbes = cellQueue.length;
@@ -89,10 +90,10 @@ function polylabel(polygon, precision, debug) {
 
         // split the cell into four cells
         h = cell.h / 2;
-        cellQueue.push(new Cell(cell.x - h, cell.y - h, h, polygon));
-        cellQueue.push(new Cell(cell.x + h, cell.y - h, h, polygon));
-        cellQueue.push(new Cell(cell.x - h, cell.y + h, h, polygon));
-        cellQueue.push(new Cell(cell.x + h, cell.y + h, h, polygon));
+        cellQueue.push(new PolyLabelCell(cell.x - h, cell.y - h, h, polygon));
+        cellQueue.push(new PolyLabelCell(cell.x + h, cell.y - h, h, polygon));
+        cellQueue.push(new PolyLabelCell(cell.x - h, cell.y + h, h, polygon));
+        cellQueue.push(new PolyLabelCell(cell.x + h, cell.y + h, h, polygon));
         numProbes += 4;
     }
 
@@ -109,15 +110,11 @@ function polylabel(polygon, precision, debug) {
 
 };
 
-
-
 function compareMax(a, b) {
     return b.max - a.max;
 };
 
-
-
-function Cell(x, y, h, polygon) {
+function PolyLabelCell(x, y, h, polygon) {
 
     this.x = x; // cell center x
     this.y = y; // cell center y
@@ -126,8 +123,6 @@ function Cell(x, y, h, polygon) {
     this.max = this.d + this.h * Math.SQRT2; // max distance to polygon within a cell
 
 };
-
-
 
 // signed distance from point to polygon outline (negative if point is outside)
 function pointToPolygonDist(x, y, polygon) {
@@ -155,8 +150,6 @@ function pointToPolygonDist(x, y, polygon) {
 
 };
 
-
-
 // get polygon centroid
 function getCentroidCell(polygon) {
     var area = 0;
@@ -174,13 +167,11 @@ function getCentroidCell(polygon) {
     }
 
     if (area === 0)
-        return new Cell(points[0][0], points[0][1], 0, polygon);
+        return new PolyLabelCell(points[0][0], points[0][1], 0, polygon);
 
-    return new Cell(x / area, y / area, 0, polygon);
+    return new PolyLabelCell(x / area, y / area, 0, polygon);
 
 };
-
-
 
 // get squared distance from a point to a segment
 function getSegDistSq(px, py, a, b) {
