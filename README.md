@@ -2,11 +2,13 @@
 
 Bez.js is a library of path-related functions for Adobe Illustrator.
 
-So far I have used it in my [Dasher project](https://github.com/mark1bean/dasher-for-illustrator) script as well as example scripts *Add Path Point At Extrema.js* and *Interpolate Between Paths.js*.
 
-![Add Path Point At Extrema.js demo animation](images/add-extrema-anim.gif)
 
-![Interpolate Between Paths.js demo animation](images/interpolate-paths-anim.gif)
+To see
+
+![Add Extra Path Points](images/add-extra-path-points-anim.gif)
+
+![Interpolate Between Paths](images/interpolate-anim.gif)
 
 ![Dasher.js demo animation](images/dasher-anim.gif)
 

@@ -1,9 +1,6 @@
 if ('undefined' === typeof Bez) {
     //@include '../library/Bez.js'
 }
-if ('undefined' === typeof Explr) {
-    //@include '/Users/mark/Scripting/Indesign/Lib/Explr.js'
-}
 
 /**
  * Add Path Points at Extrema of selected path/segments.
