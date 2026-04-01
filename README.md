@@ -34,21 +34,18 @@ Interpolate Between Paths.js
 Match Path Items.js
 ![Match Path Items.js](images/match-path-items-anim.gif)
 
-$~$
 ***
 
 ## Installation
 
 Download the [latest release](https://github.com/mark1bean/bez-for-illustrator/releases/latest/download/bez-for-illustrator.zip). Store the scripts where you normally store your Illustrator script. Make sure the `//@include "library/Bez.js"` directive at the top of your script is a valid path (can be relative or absolute) to the Bez.js file.
 
-$~$
 ***
 
 ## System requirements
 
 As of 2026-04-01, tested only on AI version 30.2.1 (MacOS 26.3.1).
 
-$~$
 ***
 
 ## Acknowledgements
