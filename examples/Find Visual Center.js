@@ -1,7 +1,7 @@
 if ('undefined' === typeof Bez) {
     //@include '../library/Bez.js'
 }
-if ('undefined' === typeof polylabel) {
+if ('undefined' === typeof PolyLabel) {
     //@include '../library/PolyLabel.js'
 }
 
@@ -20,6 +20,10 @@ if ('undefined' === typeof polylabel) {
     var pink = getPink();
     var white = getWhite();
 
+    var targetLayer = doc.activeLayer;
+    targetLayer.locked = false;
+    targetLayer.visible = true;
+
     for (var i = 0; i < bezs.length; i++) {
 
         var bez = bezs[i];
@@ -33,17 +37,18 @@ if ('undefined' === typeof polylabel) {
         if (vc == undefined)
             continue;
 
-        // these are just examples of doing something with the result:
+        // now we have the visual center
+        // for example we could draw a pink circle ...
+        drawCircle(targetLayer, vc.center, vc.radius, pink);
 
-        // draw a pink circle, to show visual center
-        drawCircle(doc, vc.center, vc.radius, pink);
-
-        // scale an example textFrame to fit in visual center
-        var tf = doc.textFrames.add();
+        // add a label showing the radius
+        var tf = targetLayer.textFrames.add();
         tf.contents = String(Math.round(vc.radius));
         tf.textRange.tracking = 0;
         tf.textRange.paragraphAttributes.justification = Justification.CENTER;
         tf.textRange.fillColor = white;
+
+        // scale the label to fit in circle
         fitTextInCircle({ textFrame: tf, circle: vc, margin: 0.5 });
 
     }
@@ -80,14 +85,14 @@ if ('undefined' === typeof polylabel) {
 
     /**
      * Draws a circle in the Illustrator document.
-     * @param {Document} doc - an Illustrator Document.
+     * @param {Layer|GroupItem} container - any Illustrator object that supports pathItems (eg. Layer, GroupItem).
      * @param {Array<Number>} center - center of circle [x, y].
      * @param {Number} radiusDegrees - radius of circle.
      * @param {Color} col - the circle fillColor.
      * @returns {PathItem}
      */
-    function drawCircle(doc, center, radiusDegrees, col) {
-        var circle = doc.pathItems.ellipse(center[1] + radiusDegrees, center[0] - radiusDegrees, radiusDegrees * 2, radiusDegrees * 2);
+    function drawCircle(container, center, radiusDegrees, col) {
+        var circle = container.pathItems.ellipse(center[1] + radiusDegrees, center[0] - radiusDegrees, radiusDegrees * 2, radiusDegrees * 2);
         circle.stroked = false;
         circle.filled = true;
         circle.fillColor = col;
