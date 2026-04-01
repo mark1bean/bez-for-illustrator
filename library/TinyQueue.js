@@ -1,8 +1,7 @@
 /**
  * Tiny Queue ported to ExtendScript.
  * @url https://github.com/mourner/tinyqueue
- * @author Volodymyr Agafonkin
- * Ported to ExtendScript by m1b.
+ * @author Volodymyr Agafonkin (Ported to ExtendScript by m1b.)
  * @constructor
  * @param {Object} options
  * @param {Array} [options.data] - array of data (default: empty array).
@@ -53,7 +52,7 @@ TinyQueue.prototype.pop = function () {
 
 TinyQueue.prototype.peek = function () {
     return this.data[0];
-}
+};
 
 
 TinyQueue.prototype._up = function (pos) {
